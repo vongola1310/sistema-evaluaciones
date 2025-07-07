@@ -19,10 +19,61 @@ model Employee{
   firstName  String
   lastName   String
   employeeNo String @unique
+
   evaluations Evaluation[]
 }
+
 model Evaluation {
   id        Int @id @default(autoincrement())
-  employee Employee @relation(fields: [employeeId],references: [id])
+
+  //claves foraneas
   employeeId Int
+  evaluatorId Int
+  opportunityId    Int
+  //Relaciones
+  employee    Employee @relation(fields: [employeeId],references: [id])
+ 
+  evaluator   Evaluator @relation(fields: [evaluatorId],references: [id])
+ 
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id])
+  
+  
+
+
+  //Campos de evaluacion (0-2)
+
+  updatedDate       Int
+  correctPriceQty   Int
+  quoteUploaded     Int
+  description       Int
+  recentFollowUp    Int
+  correctStage      Int
+  realisticChance   Int
+  nextStepsDefined  Int
+  contactAssigned   Int
+  commentsUpdated   Int
+
+  //Calculo 
+  scoreRaw          Int
+  scoreAverage      Float
+  
+  // Meta
+  createdAt         DateTime @default(now())
 }
+
+model Evaluator{
+  id                Int @id @default(autoincrement())
+  fullName          String
+  email             String @unique
+
+  evaluations Evaluation[]
+}
+
+model Opportunity {
+  id Int @id @default(autoincrement())
+  number String @unique// numero de oportunidad
+  name String // Nombre libre
+
+  evaluations Evaluation[]
+}
+
