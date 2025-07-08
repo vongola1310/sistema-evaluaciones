@@ -17,7 +17,7 @@ export default function NuevoEmpleado() {
             method: 'POST',
             body: JSON.stringify({ firstName, lastName, employeeNo }),
             headers: {
-              'Content-Type': 'application/json',
+                'Content-Type': 'application/json',
             },
         })
 
@@ -66,12 +66,25 @@ export default function NuevoEmpleado() {
                     />
                 </label>
 
-                <button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white font-semibold"
-                >
-                    Guardar
-                </button>
+                <div className="flex justify-between items-center mt-4">
+                    <button
+                        type="submit"
+                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white font-semibold"
+                    >
+                        Guardar
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => router.push('/empleados')}
+                        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white font-semibold"
+                    >
+                        👁 Ver registros
+                    </button>
+                </div>
+
+
+
             </form>
         </div>
     )
