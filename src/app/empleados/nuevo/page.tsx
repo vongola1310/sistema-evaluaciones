@@ -1,15 +1,33 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 
-import { headers } from "next/headers"
 
 export default function NuevoEmpleado() {
     const [firstName, setFirstname] = useState("")
     const [lastName, setLastName] = useState("")
     const [employeeNo, setEmployeeNo] = useState("")
+    
+    const { data: session, status }= useSession()
     const router = useRouter()
+
+    //Redireccion si no esta autenticado
+    useEffect(() => {
+        if(status ==='unauthenticated'){
+            router.push('/login')
+        }
+    },[status,router])
+
+    //mientras la sesion carga s epued emostrar un mensaje o spinner
+    if(status === 'loading'){
+        return <p className="text-white text-center mt10" >Cargando............</p>
+    }
+
+
+
+    
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

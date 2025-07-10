@@ -7,9 +7,16 @@ import bcrypt from 'bcryptjs'
 // Extiende los tipos de NextAuth para incluir 'role' en el usuario de sesión
 import NextAuth from "next-auth"
 
+
+
 declare module "next-auth" {
+   interface User {
+    id: string
+    role: string // Cambia a string sin null si siempre tendrá valor
+  }
   interface Session {
     user: {
+      id: string
       name?: string | null
       email?: string | null
       image?: string | null
@@ -17,6 +24,8 @@ declare module "next-auth" {
     }
   }
 }
+
+
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -62,6 +71,7 @@ callbacks: {
     // Esto se ejecuta cuando se genera el JWT
     if (user) {
      token.role = (user as any).role
+     token.id = (user as any).id
     }
     return token
   },
@@ -69,6 +79,7 @@ callbacks: {
     // Esto se ejecuta cuando se crea la sesión en el cliente
     if (session.user && token) {
       session.user.role = token.role as string
+      session.user.id = token.id as string
     }
     return session
   },

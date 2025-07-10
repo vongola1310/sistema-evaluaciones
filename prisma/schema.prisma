@@ -57,16 +57,16 @@ model Evaluation {
 
   //Campos de evaluacion (0-2)
 
-  updatedDate       Int
-  correctPriceQty   Int
-  quoteUploaded     Int
-  description       Int
-  recentFollowUp    Int
-  correctStage      Int
-  realisticChance   Int
-  nextStepsDefined  Int
-  contactAssigned   Int
-  commentsUpdated   Int
+  updatedDate       String
+  correctPriceQty   String
+  quoteUploaded     String
+  description       String
+  recentFollowUp    String
+  correctStage      String
+  realisticChance   String
+  nextStepsDefined  String
+  contactAssigned   String
+  commentsUpdated   String
 
   //Calculo 
   scoreRaw          Int

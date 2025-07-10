@@ -20,7 +20,7 @@ export default function LoginPage() {
     })
 
     if (res?.ok) {
-      router.push('/empleados') // Redirige al listado de empleados si login OK
+      router.push('/dashboard') // Redirige al listado de empleados si login OK
     } else {
       setError('Credenciales incorrectas')
     }
