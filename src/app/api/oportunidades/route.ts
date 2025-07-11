@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { error } from "console";
 
+export async function GET() {
+  const opportunities = await prisma.opportunity.findMany({
+    select: {
+      id: true,
+      number: true,
+      name: true
+    }
+  })
+  return NextResponse.json(opportunities)
+}
+
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +29,7 @@ export async function POST(request: Request) {
     const newOpportunity = await prisma.opportunity.create({
       data: {
        number: number.trim(),
-       name: number.trim(),
+       name: name.trim(),
        ...(createdBy&&{ createdBy:{connect:{email:createdBy } } })
       }
     })

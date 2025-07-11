@@ -15,16 +15,18 @@ datasource db {
 }
 
 model User{
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid()) // ID como String
   name      String?
-  email     String @unique
+  email     String   @unique
   password  String
-  role String @default("evaluador")//
+  role      String   @default("evaluador")
   createdAt DateTime @default(now())
-  updateAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
-  evaluations Evaluation[] // ← Si luego quieres relacionarlo con evaluaciones
-
+  
+  // Relación con Evaluation como evaluador
+  evaluations Evaluation[] @relation(name: "Evaluator")
+  
    
 }
 
@@ -39,24 +41,19 @@ model Employee{
 }
 
 model Evaluation {
-  id              Int @id @default(autoincrement())
-
-  //claves foraneas
+  id              Int      @id @default(autoincrement())
+  
+  // Claves foráneas
   employeeId      Int
-  evaluatorId     Int
+  evaluatorId     String   // Ahora compatible con User.id (String)
   opportunityId   Int
-  //Relaciones
-  employee    Employee @relation(fields: [employeeId],references: [id])
- 
-  evaluator   Evaluator @relation(fields: [evaluatorId],references: [id])
- 
-  opportunity Opportunity @relation(fields: [opportunityId], references: [id])
   
+  // Relaciones con nombres explícitos
+  employee      Employee    @relation(fields: [employeeId], references: [id])
+  evaluator     User        @relation(name: "Evaluator", fields: [evaluatorId], references: [id])
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
   
-
-
-  //Campos de evaluacion (0-2)
-
+  // Campos de evaluación
   updatedDate       String
   correctPriceQty   String
   quoteUploaded     String
@@ -67,15 +64,13 @@ model Evaluation {
   nextStepsDefined  String
   contactAssigned   String
   commentsUpdated   String
-
-  //Calculo 
+  
+  // Cálculos
   scoreRaw          Int
   scoreAverage      Float
   
-  // Meta
+  // Metadata
   createdAt         DateTime @default(now())
-
-  User User[]
 }
 
 model Evaluator{
@@ -83,7 +78,7 @@ model Evaluator{
   fullName          String
   email             String @unique
 
-  evaluations Evaluation[]
+  
 }
 
 model Opportunity {
