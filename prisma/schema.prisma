@@ -65,9 +65,13 @@ model Evaluation {
   contactAssigned   String
   commentsUpdated   String
   
-  // Cálculos
-  scoreRaw          Int
-  scoreAverage      Float
+  // Nuevos Cálculos
+  scoreRaw       Int
+  totalPreguntas Int    @default(10)
+  totalPosibles  Int    @default(20)
+  trimestre      Int    @default(1)
+  year           Int    @default(2025)
+  rubrica        String @default("Sin evaluar")
   
   // Metadata
   createdAt         DateTime @default(now())
