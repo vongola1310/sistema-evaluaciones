@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import Link from 'next/link'
+
 
 const camposEvaluacion = [
   { key: 'updatedDate', label: 'Fecha actualizada' },
@@ -268,6 +270,10 @@ export default function NuevaEvaluacion() {
           {isSubmitting ? 'Guardando...' : 'Guardar Evaluación'}
         </button>
       </form>
+      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
+  ← Regresar al Dashboard
+</Link>
+
     </div>
   )
 }

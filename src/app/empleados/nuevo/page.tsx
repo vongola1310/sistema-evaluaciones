@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import Link from 'next/link'
 
 
 export default function NuevoEmpleado() {
@@ -104,6 +105,10 @@ export default function NuevoEmpleado() {
 
 
             </form>
+            <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
+  ← Regresar al Dashboard
+</Link>
+
         </div>
     )
 }

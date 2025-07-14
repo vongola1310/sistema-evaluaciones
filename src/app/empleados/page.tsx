@@ -72,6 +72,10 @@ export default async function ListaEmpleados() {
           </table>
         </div>
       </div>
+      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
+  ← Regresar al Dashboard
+</Link>
+
     </div>
   )
 }

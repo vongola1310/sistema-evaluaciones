@@ -164,40 +164,61 @@ export async function POST(request: Request) {
 
 // Opcional: Endpoint GET para obtener evaluaciones
 export async function GET(request: Request) {
-  try {
-    const evaluations = await prisma.evaluation.findMany({
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
-        opportunity: {
-          select: {
-            number: true,
-            name: true
-          }
+ const { searchParams } = new URL(request.url)
+
+ const evaluador = searchParams.get('evaluador')//string
+ const empleado = searchParams.get(' empleado')//number
+ const oportunidad = searchParams.get('oportunidad')//number
+
+ try{
+  const evaluations = await prisma.evaluation.findMany({
+    where:{
+      ...(evaluador && {evaluatorId:evaluador}),
+      ...(empleado && {employeeId:parseInt(empleado)}),
+      ...(oportunidad) &&{opportunityId:parseInt(oportunidad)}
+    },
+    include:{
+      employee:{
+        select:{
+          id:true,
+          firstName:true,
+          lastName:true
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: evaluations
-    })
-
-  } catch (error: unknown) {
-    console.error('Error al obtener evaluaciones:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Error al cargar evaluaciones'
+      opportunity:{
+        select:{
+          id:true,
+          number:true,
+          name:true
+        }
       },
-      { status: 500 }
-    )
-  }
+      evaluator:{
+        select:{
+          id:true,
+          name:true,
+          email:true
+        }
+      }
+    },
+    orderBy:{
+      createdAt:'desc'
+    }
+
+  })
+
+  return NextResponse.json({
+    succes:true,
+    data:evaluations
+
+  })
+ }catch (error) {
+  console.error('Erroe al obtener evaluaciones:',error)
+  return NextResponse.json(
+    {
+      success:false,
+      error:'Error al cargar evaluaciones'
+    },
+    {status:500}
+  )
+ }
 }

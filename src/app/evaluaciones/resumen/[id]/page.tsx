@@ -1,5 +1,6 @@
 // app/evaluaciones/resumen/[id]/page.tsx
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 
 interface Evaluation {
   id: number
@@ -89,6 +90,10 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
           </tbody>
         </table>
       </div>
+      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
+  ← Regresar al Dashboard
+</Link>
+
     </div>
   )
 }

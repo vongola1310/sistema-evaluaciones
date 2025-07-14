@@ -26,12 +26,17 @@ export const config = {
     matcher:[
         '/empleados/nuevo/',
         '/empleados/:path*',
+        '/empleados/',
         '/evaluaciones/nueva/:path*',
         '/evaluaciones/:path*',
         '/oportunidades/nueva/:path*',
         '/oportunidades/:path*',
         '/dashboard/:path*',
         '/empleados/nuevo/:path*',
+        '/evaluaciones/nueva',
+        '/evaluaciones/',
+        '/evaluaciones/resumen/[id]/',
+        '/evaluaciones/:path*'
     ],
 }
 
