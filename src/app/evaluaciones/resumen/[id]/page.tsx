@@ -5,7 +5,7 @@ import Link from 'next/link'
 interface Evaluation {
   id: number
   scoreRaw: number
-  scoreAverage: number
+  totalPosibles: number
   createdAt: string
   employee: {
     firstName: string
@@ -46,6 +46,10 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
 
   const evaluacion: Evaluation = data.data
 
+  const porcentaje = evaluacion.totalPosibles
+    ? ((evaluacion.scoreRaw / evaluacion.totalPosibles) * 100).toFixed(2)
+    : 'N/A'
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
@@ -63,8 +67,18 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
         </div>
 
         <div className="bg-gray-700 rounded-lg p-4 mb-6">
-          <p className="text-lg font-semibold text-center">Puntaje total: <span className="text-green-400">{evaluacion.scoreRaw} / 20</span></p>
-          <p className="text-lg font-semibold text-center">Promedio: <span className="text-blue-400">{evaluacion.scoreAverage.toFixed(2)}%</span></p>
+          <p className="text-lg font-semibold text-center">
+            Puntaje total:{' '}
+            <span className="text-green-400">
+              {evaluacion.scoreRaw} / {evaluacion.totalPosibles}
+            </span>
+          </p>
+          <p className="text-lg font-semibold text-center">
+            Promedio:{' '}
+            <span className="text-blue-400">
+              {porcentaje !== 'N/A' ? `${porcentaje}%` : 'N/A'}
+            </span>
+          </p>
         </div>
 
         <h2 className="text-xl font-bold mb-4">Respuestas detalladas</h2>
@@ -90,10 +104,10 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
           </tbody>
         </table>
       </div>
-      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
-  ← Regresar al Dashboard
-</Link>
 
+      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
+        ← Regresar al Dashboard
+      </Link>
     </div>
   )
 }
