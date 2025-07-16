@@ -1,23 +1,33 @@
 // app/api/evaluaciones/empleado/[employeeId]/[year]/[trimestre]/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { error } from 'console'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { employeeId: string, year: string, trimestre: string } }
+  { params }: { params: { employeeNo: string, year: string, trimestre: string } }
 ) {
   try {
-    const employeeId = parseInt(params.employeeId)
+    const employeeNo = params.employeeNo
     const year = parseInt(params.year)
     const trimestre = parseInt(params.trimestre)
 
-    if (isNaN(employeeId) || isNaN(year) || isNaN(trimestre)) {
+    if (!employeeNo || isNaN(year) || isNaN(trimestre)) {
       return NextResponse.json({ success: false, error: 'Parámetros inválidos' }, { status: 400 })
+    }
+
+    //buscar al empleado por su numero 
+    const employee = await prisma.employee.findUnique({
+      where:{employeeNo}
+    })
+
+    if(!employee){
+      return NextResponse.json({success:false,error:'Empleado no encontrado'})
     }
 
     const evaluaciones = await prisma.evaluation.findMany({
       where: {
-        employeeId,
+        employeeId:employee.id,
         year,
         trimestre
       },
