@@ -1,7 +1,6 @@
 // src/app/empleados/page.tsx
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
@@ -9,7 +8,7 @@ import { redirect } from 'next/navigation'
 export default async function ListaEmpleados() {
   const session = await getServerSession(authOptions)
 
-  // 🔒 Si no hay sesión, redirige a login
+  // 🔒 Redirección si no hay sesión
   if (!session) {
     redirect('/login')
   }
@@ -21,47 +20,36 @@ export default async function ListaEmpleados() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Lista de empleados</h1>
+        <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">Lista de empleados</h1>
 
-        <div className="mb-4">
-          <Link href="/empleados/nuevo" className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+        <div className="mb-6 text-center">
+          <Link
+            href="/empleados/nuevo"
+            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold shadow"
+          >
             ➕ Nuevo empleado
           </Link>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full bg-gray-800 rounded-xl overflow-hidden">
-            <thead className="bg-gray-700 text-left">
+          <table className="w-full text-sm bg-gray-800 rounded-xl overflow-hidden">
+            <thead className="bg-gray-700 text-left text-gray-300">
               <tr>
                 <th className="px-4 py-2">Nombre completo</th>
                 <th className="px-4 py-2">Número de empleado</th>
-                <th className="px-4 py-2">Acciones</th>
+                
               </tr>
             </thead>
             <tbody>
-              {empleados.map((emp) => (
-                <tr key={emp.id} className="border-t border-gray-700">
-                  <td className="px-4 py-2">
-                    {emp.firstName} {emp.lastName}
-                  </td>
-                  <td className="px-4 py-2">{emp.employeeNo}</td>
-                  <td className="px-4 py-2 space-x-2">
-                    <Link
-                      href={`/empleados/${emp.id}/editar`}
-                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
-                    >
-                      Editar
-                    </Link>
-                    <Link
-                      href={`/evaluar/${emp.id}`}
-                      className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
-                    >
-                      Evaluar
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {empleados.length === 0 && (
+              {empleados.length > 0 ? (
+                empleados.map((emp) => (
+                  <tr key={emp.id} className="border-t border-gray-700 hover:bg-gray-800">
+                    <td className="px-4 py-2">{emp.firstName} {emp.lastName}</td>
+                    <td className="px-4 py-2">{emp.employeeNo}</td>
+                    
+                  </tr>
+                ))
+              ) : (
                 <tr>
                   <td colSpan={3} className="px-4 py-4 text-center text-gray-400">
                     No hay empleados registrados.
@@ -71,11 +59,16 @@ export default async function ListaEmpleados() {
             </tbody>
           </table>
         </div>
-      </div>
-      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
-  ← Regresar al Dashboard
-</Link>
 
+        <div className="mt-8 text-center">
+          <Link
+            href="/dashboard"
+            className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow"
+          >
+            ← Regresar al Dashboard
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
