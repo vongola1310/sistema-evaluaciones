@@ -30,7 +30,7 @@ export default async function DashboardEvaluador(){
           </Link>
 
           {/* Bloque 2: Evaluar empleados */}
-          <Link href="/empleados/nuevo" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+          <Link href="/evaluaciones/nueva" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
             <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Evaluar empleados</h2>
             <p className="text-gray-400">Accede al listado de empleados y comienza una nueva evaluación.</p>
           </Link>
