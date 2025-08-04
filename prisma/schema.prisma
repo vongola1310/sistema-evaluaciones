@@ -55,16 +55,35 @@ model Evaluation {
   
   // Campos de evaluación
   updatedDate       String
-  correctPriceQty   String
-  quoteUploaded     String
-  description       String
-  recentFollowUp    String
-  correctStage      String
-  realisticChance   String
-  nextStepsDefined  String
-  contactAssigned   String
-  commentsUpdated   String
+  updateDateComment String?
   
+
+  correctPriceQty   String
+  correctPriceQtyComment String?
+
+  quoteUploaded     String
+  quoteUploadedComment String?
+  
+  description       String
+  descriptionComment String?
+
+  recentFollowUp    String
+  recentFollowUpComment String?
+
+  correctStage      String
+  correctStageComment String?
+
+  realisticChance   String
+  realisticChanceComment String?
+
+  nextStepsDefined  String
+  nextStepsDefinedComment String?
+  
+  contactAssigned   String
+  contactAssignedComment   String?
+
+  commentsUpdated   String
+  commentsUpdatedComment String?
   // Nuevos Cálculos
   scoreRaw       Int
   totalPreguntas Int    @default(10)

@@ -1,6 +1,7 @@
 // app/evaluaciones/resumen/[id]/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { tr } from 'date-fns/locale'
 
 interface Evaluation {
   id: number
@@ -87,11 +88,12 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
             <tr>
               <th className="px-4 py-2 text-left">Criterio</th>
               <th className="px-4 py-2 text-left">Respuesta</th>
+              <th className='px-4 py-2 text-left'>Comentario</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(camposEvaluacion).map(([key, label]) => (
-              <tr key={key} className="border-t border-gray-600">
+              <tr key={key} className="border-t border-gray-600 align-top">
                 <td className="px-4 py-2 text-gray-300">{label}</td>
                 <td className="px-4 py-2">
                   {evaluacion[key] === '0' && '0 - Incumplido'}
@@ -99,10 +101,15 @@ export default async function ResumenEvaluacionPage({ params }: { params: { id: 
                   {evaluacion[key] === '2' && '2 - Totalmente cumplido'}
                   {evaluacion[key] === 'N/A' && 'N/A - No aplica'}
                 </td>
+                <td className="px-4 py-2 italic text-gray-400">
+                  {evaluacion[`${key}Comment`] || <span className="text-gray-600">—</span>}
+                </td>
               </tr>
             ))}
+
           </tbody>
         </table>
+        
       </div>
 
       <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
