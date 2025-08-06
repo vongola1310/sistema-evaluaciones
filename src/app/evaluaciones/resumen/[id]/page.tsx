@@ -1,120 +1,145 @@
-// app/evaluaciones/resumen/[id]/page.tsx
-import { notFound } from 'next/navigation'
+// src/app/evaluaciones/resumen/[id]/page.tsx
 import Link from 'next/link'
-import { tr } from 'date-fns/locale'
+import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
 
-interface Evaluation {
-  id: number
-  scoreRaw: number
-  totalPosibles: number
-  createdAt: string
-  employee: {
-    firstName: string
-    lastName: string
-    employeeNo: string
-  }
-  opportunity: {
-    number: string
-    name: string
-  }
-  evaluator: {
-    name: string
-    email: string
-  }
-  [key: string]: any
+type ParamsType = {
+  params: { id: string }
+  searchParams: { pdf?: string }
 }
 
-const camposEvaluacion: Record<string, string> = {
-  updatedDate: 'Fecha actualizada',
-  correctPriceQty: 'Precio y cantidad correctos',
-  quoteUploaded: 'Cotización subida',
-  description: 'Descripción',
-  recentFollowUp: 'Seguimiento reciente',
-  correctStage: 'Etapa correcta',
-  realisticChance: 'Probabilidad realista',
-  nextStepsDefined: 'Siguientes pasos definidos',
-  contactAssigned: 'Contacto asignado',
-  commentsUpdated: 'Comentarios actualizados'
-}
 
-export default async function ResumenEvaluacionPage({ params }: { params: { id: string } }) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/evaluaciones/${params.id}`)
-  const data = await res.json()
+import { DownloadReportButton } from '@/components/DownloadReportButton'
 
-  if (!res.ok || !data?.data) {
-    return notFound()
+export default async function ResumenEvaluacionPage({ params, searchParams }: ParamsType) {
+  const id = parseInt(params.id)
+
+  if (Number.isNaN(id)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="bg-red-600/10 border border-red-600 text-red-200 p-6 rounded">
+          <h2 className="text-xl font-semibold">ID inválido</h2>
+          <p className="mt-2">El identificador de la evaluación no es válido.</p>
+          <Link href="/evaluaciones" className="inline-block mt-4 text-sm underline">
+            Volver a evaluaciones
+          </Link>
+        </div>
+      </div>
+    )
   }
 
-  const evaluacion: Evaluation = data.data
+  const evaluation = await prisma.evaluation.findUnique({
+    where: { id },
+    include: {
+      employee: true,
+      evaluator: true,
+      opportunity: true,
+    },
+  })
 
-  const porcentaje = evaluacion.totalPosibles
-    ? ((evaluacion.scoreRaw / evaluacion.totalPosibles) * 100).toFixed(2)
-    : 'N/A'
+  if (!evaluation) return notFound()
+
+  const isPDF = searchParams?.pdf === 'true'
+
+  const empFirst = (evaluation.employee as any)?.firstName ?? ''
+  const empLast = (evaluation.employee as any)?.lastName ?? ''
+  const empNo = (evaluation.employee as any)?.employeeNo ?? '-'
+  const evaluatorName = (evaluation.evaluator as any)?.fullName ?? (evaluation.evaluator as any)?.name ?? '-'
+  const evaluatorEmail = (evaluation.evaluator as any)?.email ?? '-'
+  const oppNumber = (evaluation.opportunity as any)?.number ?? '-'
+  const oppName = (evaluation.opportunity as any)?.name ?? '-'
+  const createdAt = evaluation.createdAt ? new Date(evaluation.createdAt).toLocaleString() : '-'
+  const scoreRaw = (evaluation as any).scoreRaw ?? '-'
+  const totalPosibles = (evaluation as any).totalPosibles ?? '-'
+
+  const campos: { key: string; label: string; value: any; comment?: any }[] = [
+    { key: 'correctPriceQty', label: 'Precio correcto', value: (evaluation as any).correctPriceQty, comment: (evaluation as any).correctPriceQtyComment },
+    { key: 'quoteUploaded', label: 'Cotización subida', value: (evaluation as any).quoteUploaded, comment: (evaluation as any).quoteUploadedComment },
+    { key: 'description', label: 'Descripción', value: (evaluation as any).description, comment: (evaluation as any).descriptionComment },
+    { key: 'recentFollowUp', label: 'Seguimiento reciente', value: (evaluation as any).recentFollowUp, comment: (evaluation as any).recentFollowUpComment },
+    { key: 'correctStage', label: 'Etapa correcta', value: (evaluation as any).correctStage, comment: (evaluation as any).correctStageComment },
+    { key: 'realisticChance', label: 'Probabilidad realista', value: (evaluation as any).realisticChance, comment: (evaluation as any).realisticChanceComment },
+    { key: 'nextStepsDefined', label: 'Siguientes pasos definidos', value: (evaluation as any).nextStepsDefined, comment: (evaluation as any).nextStepsDefinedComment },
+    { key: 'contactAssigned', label: 'Contacto asignado', value: (evaluation as any).contactAssigned, comment: (evaluation as any).contactAssignedComment },
+    { key: 'commentsUpdated', label: 'Comentarios actualizados', value: (evaluation as any).commentsUpdated, comment: (evaluation as any).commentsUpdatedComment },
+  ]
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold mb-6 text-center text-green-400">Resumen de Evaluación</h1>
+      <div className="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <div>
+            <h1 className="text-2xl font-bold">Resumen de Evaluación</h1>
+            <p className="text-sm text-gray-300 mt-1">ID: <span className="font-mono">{evaluation.id}</span></p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
-          <div>
-            <p><span className="font-semibold">Empleado:</span> {evaluacion.employee.firstName} {evaluacion.employee.lastName} ({evaluacion.employee.employeeNo})</p>
-            <p><span className="font-semibold">Oportunidad:</span> {evaluacion.opportunity.number} - {evaluacion.opportunity.name}</p>
-          </div>
-          <div>
-            <p><span className="font-semibold">Evaluador:</span> {evaluacion.evaluator.name} ({evaluacion.evaluator.email})</p>
-            <p><span className="font-semibold">Fecha de evaluación:</span> {new Date(evaluacion.createdAt).toLocaleString()}</p>
-          </div>
+          {!isPDF && (
+            <div className="flex items-center gap-3">
+              <DownloadReportButton evaluationId={evaluation.id} />
+
+              <Link
+                href="/evaluaciones/panel"
+                className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm"
+              >
+                ← Volver
+              </Link>
+            </div>
+          )}
         </div>
 
-        <div className="bg-gray-700 rounded-lg p-4 mb-6">
-          <p className="text-lg font-semibold text-center">
-            Puntaje total:{' '}
-            <span className="text-green-400">
-              {evaluacion.scoreRaw} / {evaluacion.totalPosibles}
-            </span>
-          </p>
-          <p className="text-lg font-semibold text-center">
-            Promedio:{' '}
-            <span className="text-blue-400">
-              {porcentaje !== 'N/A' ? `${porcentaje}%` : 'N/A'}
-            </span>
-          </p>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-900/30 p-4 rounded">
+              <p className="text-sm text-gray-300">Empleado</p>
+              <p className="font-semibold text-lg">{empFirst} {empLast}</p>
+              <p className="text-sm text-gray-400">Número: <span className="font-mono">{empNo}</span></p>
+            </div>
+
+            <div className="bg-gray-900/30 p-4 rounded">
+              <p className="text-sm text-gray-300">Evaluador</p>
+              <p className="font-semibold text-lg">{evaluatorName}</p>
+              <p className="text-sm text-gray-400">{evaluatorEmail}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-300">Oportunidad</p>
+              <p className="font-medium">{oppNumber} - {oppName}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-300">Fecha de creación</p>
+              <p className="font-medium">{createdAt}</p>
+            </div>
+          </div>
+
+          <div className="bg-gray-900/20 p-4 rounded">
+            <p className="text-sm text-gray-300">Puntaje</p>
+            <p className="text-2xl font-bold">{scoreRaw} <span className="text-gray-400 text-base">de {totalPosibles}</span></p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto bg-gray-800 rounded divide-y divide-gray-700">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th className="text-left px-4 py-3 text-sm text-gray-200">Criterio</th>
+                  <th className="text-left px-4 py-3 text-sm text-gray-200">Valor</th>
+                  <th className="text-left px-4 py-3 text-sm text-gray-200">Comentario</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {campos.map((c) => (
+                  <tr key={c.key} className="odd:bg-gray-900 even:bg-gray-800">
+                    <td className="px-4 py-3 text-sm">{c.label}</td>
+                    <td className="px-4 py-3 font-medium">{c.value ?? '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-300">{c.comment ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        <h2 className="text-xl font-bold mb-4">Respuestas detalladas</h2>
-        <table className="w-full border border-gray-600 rounded-lg overflow-hidden text-sm">
-          <thead className="bg-gray-700">
-            <tr>
-              <th className="px-4 py-2 text-left">Criterio</th>
-              <th className="px-4 py-2 text-left">Respuesta</th>
-              <th className='px-4 py-2 text-left'>Comentario</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(camposEvaluacion).map(([key, label]) => (
-              <tr key={key} className="border-t border-gray-600 align-top">
-                <td className="px-4 py-2 text-gray-300">{label}</td>
-                <td className="px-4 py-2">
-                  {evaluacion[key] === '0' && '0 - Incumplido'}
-                  {evaluacion[key] === '1' && '1 - Parcialmente cumplido'}
-                  {evaluacion[key] === '2' && '2 - Totalmente cumplido'}
-                  {evaluacion[key] === 'N/A' && 'N/A - No aplica'}
-                </td>
-                <td className="px-4 py-2 italic text-gray-400">
-                  {evaluacion[`${key}Comment`] || <span className="text-gray-600">—</span>}
-                </td>
-              </tr>
-            ))}
-
-          </tbody>
-        </table>
-        
       </div>
-
-      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
-        ← Regresar al Dashboard
-      </Link>
     </div>
   )
 }
