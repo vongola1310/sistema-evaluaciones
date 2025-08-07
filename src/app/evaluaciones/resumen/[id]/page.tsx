@@ -1,18 +1,28 @@
-// src/app/evaluaciones/resumen/[id]/page.tsx
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 
-type ParamsType = {
-  params: { id: string }
-  searchParams: { pdf?: string }
-}
+// Secreto para permitir acceso desde Puppeteer
+const SECRET_KEY = 'XYZ123'
 
+type ParamsType = { params: { id: string } }
 
-import { DownloadReportButton } from '@/components/DownloadReportButton'
+export default async function ResumenEvaluacionPage({ params }: ParamsType) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+  const host = headersList.get('host')
+  const fullUrl = referer ?? `http://${host}/evaluaciones/resumen/${params.id}`
 
-export default async function ResumenEvaluacionPage({ params, searchParams }: ParamsType) {
-  const id = parseInt(params.id)
+  const urlObj = new URL(fullUrl)
+  const isPDF = urlObj.searchParams.get('pdf') === 'true'
+  const secret = urlObj.searchParams.get('secret')
+
+  const allowWithoutLogin = isPDF && secret === SECRET_KEY
+
+  // Validar el ID
+  const idStr = params?.id
+  const id = idStr ? parseInt(idStr as string, 10) : NaN
 
   if (Number.isNaN(id)) {
     return (
@@ -39,8 +49,6 @@ export default async function ResumenEvaluacionPage({ params, searchParams }: Pa
 
   if (!evaluation) return notFound()
 
-  const isPDF = searchParams?.pdf === 'true'
-
   const empFirst = (evaluation.employee as any)?.firstName ?? ''
   const empLast = (evaluation.employee as any)?.lastName ?? ''
   const empNo = (evaluation.employee as any)?.employeeNo ?? '-'
@@ -65,7 +73,7 @@ export default async function ResumenEvaluacionPage({ params, searchParams }: Pa
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className={`min-h-screen bg-gray-900 text-white p-6 ${isPDF ? 'print-optimized' : ''}`}>
       <div className="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div>
@@ -73,9 +81,17 @@ export default async function ResumenEvaluacionPage({ params, searchParams }: Pa
             <p className="text-sm text-gray-300 mt-1">ID: <span className="font-mono">{evaluation.id}</span></p>
           </div>
 
-          {!isPDF && (
-            <div className="flex items-center gap-3">
-              <DownloadReportButton evaluationId={evaluation.id} />
+          {/* ✅ Ocultar botones cuando es PDF */}
+          {!allowWithoutLogin && (
+            <div className="flex items-center gap-3 no-print">
+              <Link
+                href={`/api/evaluaciones/${evaluation.id}/reporte`}
+                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm font-semibold"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                📄 Descargar PDF
+              </Link>
 
               <Link
                 href="/evaluaciones/panel"

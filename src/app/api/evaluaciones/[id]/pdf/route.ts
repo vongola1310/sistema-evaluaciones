@@ -1,30 +1,31 @@
 // src/app/api/evaluaciones/[id]/pdf/route.ts
-
+import puppeteer from 'puppeteer-core'
 import { NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
+import { join } from 'path'
 
-export async function GET(request: Request, context: { params: { id: string } }) {
+const SECRET = 'XYZ123'
+
+export async function GET(_: Request, context: { params: { id: string } }) {
   const id = parseInt(context.params.id, 10)
   if (isNaN(id)) {
     return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
   }
 
-  const url = `http://localhost:3000/evaluaciones/resumen/${id}?pdf=true`
-
   try {
+    const url = `http://localhost:3000/evaluaciones/reporte-html/${id}?pdf=true&secret=${SECRET}`
+
     const browser = await puppeteer.launch({
       headless: true,
-      // Puedes omitir `executablePath` porque puppeteer ya trae Chromium
+      executablePath: join(process.cwd(), 'chrome-win', 'chrome.exe'), // AJUSTA SI USAS OTRO PATH
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
 
     const page = await browser.newPage()
     await page.goto(url, { waitUntil: 'networkidle0' })
+    await new Promise(resolve => setTimeout(resolve, 1000)) // ✅
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-    })
+
+    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true })
 
     await browser.close()
 
@@ -34,8 +35,8 @@ export async function GET(request: Request, context: { params: { id: string } })
         'Content-Disposition': `attachment; filename="evaluacion_${id}.pdf"`,
       },
     })
-  } catch (error) {
-    console.error('Error al generar el PDF con Puppeteer:', error)
-    return NextResponse.json({ error: 'Error al generar PDF' }, { status: 500 })
+  } catch (err) {
+    console.error('Error al generar el PDF con Puppeteer:', err)
+    return NextResponse.json({ error: 'Error al generar el PDF' }, { status: 500 })
   }
 }

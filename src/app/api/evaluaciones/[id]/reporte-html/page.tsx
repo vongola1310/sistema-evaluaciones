@@ -1,7 +1,8 @@
 // src/app/evaluaciones/reporte-html/[id]/page.tsx
-
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ReporteHTML({ params }: { params: { id: string } }) {
   const id = parseInt(params.id, 10)
@@ -20,17 +21,23 @@ export default async function ReporteHTML({ params }: { params: { id: string } }
   if (!evaluation) return notFound()
 
   return (
-    <html>
+    <html lang="es">
       <head>
+        <meta charSet="UTF-8" />
         <title>Reporte evaluación #{evaluation.id}</title>
         <style>{`
           body {
-            font-family: sans-serif;
+            font-family: Arial, sans-serif;
             padding: 2rem;
+            color: #111;
+            background-color: #fff;
           }
           h1 {
             font-size: 24px;
             margin-bottom: 1rem;
+          }
+          p {
+            margin: 4px 0;
           }
           table {
             width: 100%;
@@ -41,17 +48,20 @@ export default async function ReporteHTML({ params }: { params: { id: string } }
             border: 1px solid #ccc;
             padding: 8px;
             text-align: left;
+            font-size: 14px;
           }
           th {
-            background-color: #f5f5f5;
+            background-color: #f0f0f0;
           }
         `}</style>
       </head>
       <body>
-        <h1>Evaluación #{evaluation.id}</h1>
+        <h1>Resumen de Evaluación</h1>
+        <p><strong>ID:</strong> {evaluation.id}</p>
         <p><strong>Empleado:</strong> {evaluation.employee.firstName} {evaluation.employee.lastName} ({evaluation.employee.employeeNo})</p>
         <p><strong>Evaluador:</strong> {evaluation.evaluator.name} ({evaluation.evaluator.email})</p>
         <p><strong>Oportunidad:</strong> {evaluation.opportunity.number} - {evaluation.opportunity.name}</p>
+        <p><strong>Fecha de creación:</strong> {evaluation.createdAt.toLocaleString()}</p>
         <p><strong>Puntaje:</strong> {evaluation.scoreRaw} de {(evaluation as any).totalPosibles}</p>
 
         <table>
@@ -77,7 +87,7 @@ export default async function ReporteHTML({ params }: { params: { id: string } }
               <tr key={i}>
                 <td>{label}</td>
                 <td>{value ?? 'N/A'}</td>
-                <td>{comment ?? ''}</td>
+                <td>{comment ?? '-'}</td>
               </tr>
             ))}
           </tbody>

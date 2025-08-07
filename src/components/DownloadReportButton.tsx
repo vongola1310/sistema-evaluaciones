@@ -1,47 +1,38 @@
-// src/components/DownloadReportButton.tsx
 'use client'
 
-import { useState } from 'react'
-
 export function DownloadReportButton({ evaluationId }: { evaluationId: number }) {
-  const [loading, setLoading] = useState(false)
-
   const handleDownload = async () => {
-    setLoading(true)
-
     try {
-      const res = await fetch(`/api/evaluaciones/${evaluationId}/pdf`)
-
+      // ✅ Cambiar la ruta a la nueva API
+      const res = await fetch(`/api/evaluaciones/${evaluationId}/reporte`)
+      
       if (!res.ok) {
-        throw new Error('No se pudo generar el PDF')
+        throw new Error('Error al generar el PDF')
       }
-
+      
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
 
       const a = document.createElement('a')
       a.href = url
       a.download = `evaluacion_${evaluationId}.pdf`
+      document.body.appendChild(a) // ✅ Agregar al DOM
       a.click()
+      document.body.removeChild(a) // ✅ Limpiar el DOM
 
       URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Error al descargar PDF:', err)
-      alert('Ocurrió un error al generar el PDF.')
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error('Error al descargar PDF:', error)
+      alert('Error al generar el PDF. Por favor, intenta nuevamente.')
     }
   }
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={loading}
-      className={`px-4 py-2 rounded text-white transition ${
-        loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-      }`}
+    <button 
+      onClick={handleDownload} 
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
     >
-      {loading ? 'Generando...' : 'Descargar PDF'}
+      📄 Descargar PDF
     </button>
   )
 }
