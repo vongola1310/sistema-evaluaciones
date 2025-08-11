@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import MainLayout from "@/components/MainLayout"
 
 
 const camposEvaluacion = [
@@ -197,7 +198,8 @@ export default function NuevaEvaluacion() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <MainLayout>
+    <div className="p-6">
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-6 text-center">Nueva Evaluación</h2>
 
@@ -295,5 +297,6 @@ export default function NuevaEvaluacion() {
       </Link>
 
     </div>
+    </MainLayout>
   )
 }

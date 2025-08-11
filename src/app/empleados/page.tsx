@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import MainLayout from "@/components/MainLayout"
 
 export default async function ListaEmpleados() {
   const session = await getServerSession(authOptions)
@@ -18,7 +19,8 @@ export default async function ListaEmpleados() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <MainLayout>
+    <div className=" p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-green-400 text-center">Lista de empleados</h1>
 
@@ -70,5 +72,6 @@ export default async function ListaEmpleados() {
         </div>
       </div>
     </div>
+    </MainLayout>
   )
 }

@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,7 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
+model User {
   id        String   @id @default(cuid()) // ID como String
   name      String?
   email     String   @unique
@@ -23,92 +22,92 @@ model User{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  
   // Relación con Evaluation como evaluador
   evaluations Evaluation[] @relation(name: "Evaluator")
-  
-   
 }
 
-model Employee{
-  id         Int @id @default(autoincrement())
+model Employee {
+  id         Int    @id @default(autoincrement())
   firstName  String
   lastName   String
   employeeNo String @unique
-  role String @default("evaluado")//
+  role       String @default("evaluado") //
 
   evaluations Evaluation[]
+opportunities Opportunity[] // 👈 relación 1:N
 }
 
 model Evaluation {
-  id              Int      @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Claves foráneas
-  employeeId      Int
-  evaluatorId     String   // Ahora compatible con User.id (String)
-  opportunityId   Int
-  
+  employeeId    Int
+  evaluatorId   String // Ahora compatible con User.id (String)
+  opportunityId Int
+
   // Relaciones con nombres explícitos
-  employee      Employee    @relation(fields: [employeeId], references: [id])
-  evaluator     User        @relation(name: "Evaluator", fields: [evaluatorId], references: [id])
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
-  
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  evaluator   User        @relation(name: "Evaluator", fields: [evaluatorId], references: [id])
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id])
+
   // Campos de evaluación
   updatedDate       String
   updateDateComment String?
-  
 
-  correctPriceQty   String
+  correctPriceQty        String
   correctPriceQtyComment String?
 
-  quoteUploaded     String
+  quoteUploaded        String
   quoteUploadedComment String?
-  
-  description       String
+
+  description        String
   descriptionComment String?
 
-  recentFollowUp    String
+  recentFollowUp        String
   recentFollowUpComment String?
 
-  correctStage      String
+  correctStage        String
   correctStageComment String?
 
-  realisticChance   String
+  realisticChance        String
   realisticChanceComment String?
 
-  nextStepsDefined  String
+  nextStepsDefined        String
   nextStepsDefinedComment String?
-  
-  contactAssigned   String
-  contactAssignedComment   String?
 
-  commentsUpdated   String
+  contactAssigned        String
+  contactAssignedComment String?
+
+  commentsUpdated        String
   commentsUpdatedComment String?
   // Nuevos Cálculos
-  scoreRaw       Int
-  totalPreguntas Int    @default(10)
-  totalPosibles  Int    @default(20)
-  trimestre      Int    @default(1)
-  year           Int    @default(2025)
-  rubrica        String @default("Sin evaluar")
-  
+  scoreRaw               Int
+  totalPreguntas         Int     @default(10)
+  totalPosibles          Int     @default(20)
+  trimestre              Int     @default(1)
+  year                   Int     @default(2025)
+  rubrica                String  @default("Sin evaluar")
+
   // Metadata
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
-model Evaluator{
-  id                Int @id @default(autoincrement())
-  fullName          String
-  email             String @unique
-
-  
+model Evaluator {
+  id       Int    @id @default(autoincrement())
+  fullName String
+  email    String @unique
 }
 
 model Opportunity {
-  id      Int @id @default(autoincrement())
-  number  String @unique// numero de oportunidad
-  name    String // Nombre libre
+  id         Int      @id @default(autoincrement())
+  number     String   @unique // numero de oportunidad
+  name       String // Nombre libre
+  createdAt  DateTime @default(now())
+  state      String
+  employeeId Int      
+  // <-- relación 1:1
+    employee   Employee  @relation(fields: [employeeId], references: [id])
+  // <-- relación 1:1
 
   evaluations Evaluation[]
 }
-

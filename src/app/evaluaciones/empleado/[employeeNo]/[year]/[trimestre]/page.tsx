@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-
+import MainLayout from "@/components/MainLayout"
 interface Evaluation {
   id: number
   scoreRaw: number
@@ -34,6 +34,7 @@ export default async function EvaluacionesPorEmpleadoPage({
   const evaluaciones: Evaluation[] = data.data
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <h1 className="text-2xl font-bold text-green-400 mb-6 text-center">
         Evaluaciones del Empleado #{employeeNo} - Q{trimestre} {year}
@@ -94,5 +95,6 @@ export default async function EvaluacionesPorEmpleadoPage({
         ← Volver al panel acumulado
       </Link>
     </div>
+    </MainLayout>
   )
 }

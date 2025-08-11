@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import { get } from "http"
 import { redirect } from "next/navigation"
+import MainLayout from "@/components/MainLayout"
 
 
 export default async function DashboardEvaluador(){
@@ -16,7 +17,8 @@ export default async function DashboardEvaluador(){
         redirect("/")
     }
     return(
-         <div className="min-h-screen bg-gray-900 text-white p-8">
+      <MainLayout>
+         <div className="p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-6">
           Bienvenido, {session.user.name || "Evaluador"}
@@ -52,12 +54,18 @@ export default async function DashboardEvaluador(){
             <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Ver listado de empleados</h2>
             <p className="text-gray-400">Ve a tus empleados</p>
           </Link>
+           {/*Bloque 6 Cerar oportunidad */}
+          <Link href="/oportunidades/listado" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Cerrar Oportunidades</h2>
+            <p className="text-gray-400">Cierra Oportunidades</p>
+          </Link>
 
-
+        
 
         </div>
       </div>
     </div>
+    </MainLayout>
          
     )
 }

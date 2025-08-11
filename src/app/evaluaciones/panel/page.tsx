@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-
+import MainLayout from "@/components/MainLayout"
 interface Acumulado {
     employee: {
         firstName: string
@@ -75,7 +75,9 @@ export default function PanelAcumulado() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
+        <MainLayout>
+            
+        <div className="p-6">
             <h1 className="text-3xl font-bold text-green-400 mb-6 text-center">Panel Acumulado por Empleado</h1>
 
             <div className="flex flex-wrap gap-4 mb-6">
@@ -206,5 +208,6 @@ export default function PanelAcumulado() {
                 ← Regresar al Dashboard
             </Link>
         </div>
+        </MainLayout>
     )
 }

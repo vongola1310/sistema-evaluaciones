@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from 'next/link'
-
+import MainLayout from "@/components/MainLayout"
 export default function NuevoEmpleado() {
   const [firstName, setFirstname] = useState("")
   const [lastName, setLastName] = useState("")
@@ -39,6 +39,7 @@ export default function NuevoEmpleado() {
   }
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
       <form onSubmit={handleSubmit} className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center text-green-400">Registrar nuevo empleado</h1>
@@ -104,5 +105,6 @@ export default function NuevoEmpleado() {
         </Link>
       </div>
     </div>
+    </MainLayout>
   )
 }
