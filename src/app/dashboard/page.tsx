@@ -6,68 +6,79 @@ import { redirect } from "next/navigation"
 import MainLayout from "@/components/MainLayout"
 
 
-export default async function DashboardEvaluador(){
-    const session = await getServerSession(authOptions)
+export default async function DashboardEvaluador() {
+  const session = await getServerSession(authOptions)
 
-    if(!session){
-        redirect("/login")
-    }
+  if (!session) {
+    redirect("/login")
+  }
 
-    if(session.user.role !== "evaluador"){
-        redirect("/")
-    }
-    return(
-      <MainLayout>
-         <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6">
-          Bienvenido, {session.user.name || "Evaluador"}
-        </h1>
+  if (session.user.role !== "evaluador") {
+    redirect("/")
+  }
+  return (
+    <MainLayout>
+      <div className="p-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-4xl font-bold mb-6">
+            Bienvenido, {session.user.name || "Evaluador"}
+          </h1>
 
-        <div className="grid md:grid-cols-2 gap-6 mt-8">
-          {/* Bloque 1: Consultar Evaluaciones */}
-          <Link href="/evaluaciones/panel" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Consultar evaluaciones por empleado</h2>
-            <p className="text-gray-400">Revisa el historial de evaluaciones de cada empleado.</p>
-          </Link>
+          <div className="grid md:grid-cols-2 gap-6 mt-8">
+            {/* Bloque 1: Consultar Evaluaciones */}
+            <Link href="/evaluaciones/panel" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Consultar evaluaciones por empleado</h2>
+              <p className="text-gray-400">Revisa el historial de evaluaciones de cada empleado.</p>
+            </Link>
 
-          {/* Bloque 2: Evaluar empleados */}
-          <Link href="/evaluaciones/nueva" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Evaluar empleados</h2>
-            <p className="text-gray-400">Accede al listado de empleados y comienza una nueva evaluación.</p>
-          </Link>
+            {/* Bloque 2: Evaluar empleados */}
+            <Link href="/evaluaciones/nueva" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Evaluar empleados</h2>
+              <p className="text-gray-400">Accede al listado de empleados y comienza una nueva evaluación.</p>
+            </Link>
 
-           {/* Bloque 3: Crear Oportunidad */}
-          <Link href="/oportunidades/nueva" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Crear oportunidad</h2>
-            <p className="text-gray-400">Accede al formulario para crear una nueva oportunidad para despues agregarsela al empleado</p>
-          </Link>
+            {/* Bloque 3: Crear Oportunidad */}
+            <Link href="/oportunidades/nueva" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Crear oportunidad</h2>
+              <p className="text-gray-400">Accede al formulario para crear una nueva oportunidad para despues agregarsela al empleado</p>
+            </Link>
 
-          {/* Bloque 4: Crear Empleado */}
-          <Link href="/empleados/nuevo" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Crea un empleado</h2>
-            <p className="text-gray-400">Se aumento la plantilla no hay problema agrega al empleado al sistema de avaluacionez</p>
-          </Link>
+            {/* Bloque 4: Crear Empleado */}
+            <Link href="/empleados/nuevo" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Crea un empleado</h2>
+              <p className="text-gray-400">Se aumento la plantilla no hay problema agrega al empleado al sistema de avaluacionez</p>
+            </Link>
 
-          {/*Bloque 5 Ver lista de emplados   */}
-          <Link href="/empleados" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Ver listado de empleados</h2>
-            <p className="text-gray-400">Ve a tus empleados</p>
-          </Link>
-           {/*Bloque 6 Cerar oportunidad */}
-          <Link href="/oportunidades/listado" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
-            <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Cerrar Oportunidades</h2>
-            <p className="text-gray-400">Cierra Oportunidades</p>
-          </Link>
+            {/*Bloque 5 Ver lista de emplados   */}
+            <Link href="/empleados" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Ver listado de empleados</h2>
+              <p className="text-gray-400">Ve a tus empleados</p>
+            </Link>
+            {/*Bloque 6 Cerar oportunidad */}
+            <Link href="/oportunidades/listado" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">Cerrar Oportunidades</h2>
+              <p className="text-gray-400">Cierra Oportunidades</p>
+            </Link>
 
-        
+                {/*Bloque 7  ver listado de oportunidades cerradas*/}
+            <Link href="/oportunidades/cerradas" className="block bg-gray-800 p-6 rounded-2xl shadow hover:bg-gray-700 transition-all duration-200 group">
+              <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-all">
+                Ver oportunidades cerradas
+              </h2>
+              <p className="text-gray-400">
+                Consulta el historial de oportunidades que ya han sido cerradas
+              </p>
+            </Link>
 
+
+
+
+          </div>
         </div>
       </div>
-    </div>
     </MainLayout>
-         
-    )
+
+  )
 }
 
 

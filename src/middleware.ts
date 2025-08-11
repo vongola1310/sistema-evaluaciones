@@ -36,5 +36,7 @@ export const config = {
     "/evaluaciones/:path*",
     "/oportunidades/:path*",
     "/dashboard/:path*",
+    
+
   ],
 }

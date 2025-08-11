@@ -103,6 +103,7 @@ model Opportunity {
   number     String   @unique // numero de oportunidad
   name       String // Nombre libre
   createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt//
   state      String
   employeeId Int      
   // <-- relación 1:1
