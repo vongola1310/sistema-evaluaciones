@@ -1,77 +1,50 @@
-// src/app/api/oportunidades/cerradas/route.ts
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+// /api/oportunidades/route.ts
+
+import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user || session.user.role !== 'evaluador') {
-    return NextResponse.json(
-      { success: false, error: 'Acceso no autorizado' },
-      { status: 401 }
-    )
-  }
-
   try {
-    const url = new URL(request.url)
-    const employeeId = url.searchParams.get('employeeId')
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status') // Leemos el parámetro 'status'
 
-    // Construir el filtro
-    const whereCondition: any = {
-      state: 'cerrada'
+    let whereClause = {}
+
+    // Construimos la condición de búsqueda basada en el status
+    if (status === 'cerrada') {
+      whereClause = { state: 'cerrada' }
+    } else if (status === 'abierta') {
+      // Usamos 'not' para obtener todas las que NO son 'cerrada'
+      whereClause = { state: { not: 'cerrada' } }
     }
+    // Si no hay status, se devuelven todas.
 
-    // Si se especifica un empleado, filtrar por él
-    if (employeeId && employeeId !== 'todos') {
-      whereCondition.evaluations = {
-        some: {
-          employeeId: parseInt(employeeId, 10)
-        }
-      }
-    }
-
-    const oportunidadesCerradas = await prisma.opportunity.findMany({
-      where: {state:'activa'},
-      select: {
-        id: true,
-        number: true,
-        name: true,
-        createdAt: true,
-        updateAt: true,
-        state: true,
-        evaluations: {
-          include: {
-            employee: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                employeeNo: true
-              }
-            }
+    const opportunities = await prisma.opportunity.findMany({
+      where: whereClause, // Aplicamos el filtro en la consulta a la BD
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeNo: true,
           }
         }
       },
       orderBy: {
-        updateAt: 'desc' // Ordenar por fecha de cierre (más recientes primero)
+        updateAt: 'desc'
       }
     })
 
-    // Agregar log temporal para debug
-    console.log('Primera oportunidad raw:', oportunidadesCerradas[0])
-
-    return NextResponse.json({ 
-      success: true, 
-      data: oportunidadesCerradas,
-      count: oportunidadesCerradas.length
-    })
+    return NextResponse.json(opportunities)
   } catch (error) {
-    console.error('Error al obtener oportunidades cerradas:', error)
+    console.error('Error fetching opportunities:', error)
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { error: 'Error al cargar oportunidades' },
       { status: 500 }
     )
   }
 }
+
+// Aquí puedes tener también tu función POST para crear oportunidades
+// ...
