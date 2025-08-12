@@ -5,13 +5,13 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const password = 'mario.huante'
+  const password = 'estela.carrera'
   const hashedPassword = await bcrypt.hash(password, 10)
 
   const user = await prisma.user.create({
     data: {
-      name: 'Mario Alberto Huante Meza',
-      email: 'mario.huante@euroimmun.mx',
+      name: 'Estela Nizaye Carrera Sarmiento',
+      email: 'estela.carrera@euroimmun.mx',
       password: hashedPassword,
       role: 'evaluador',
     },

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     const oportunidadesCerradas = await prisma.opportunity.findMany({
-      where: whereCondition,
+      where: {state:'activa'},
       select: {
         id: true,
         number: true,
