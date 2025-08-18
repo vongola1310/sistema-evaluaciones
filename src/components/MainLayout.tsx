@@ -6,11 +6,13 @@ interface MainLayoutProps{
 
 export default function MainLayout({children}:MainLayoutProps){
     return(
-       <div className="min-h-screen bg-gray-900">
-      <Navbar />
-      <main className="text-white">
-        {children}
-      </main>
-    </div> 
+       // ✅ Se eliminó la clase "bg-gray-900"
+       <div className="min-h-screen">
+         <Navbar />
+         {/* ✅ Se eliminó la clase "text-white" */}
+         <main>
+           {children}
+         </main>
+       </div> 
     )
 }

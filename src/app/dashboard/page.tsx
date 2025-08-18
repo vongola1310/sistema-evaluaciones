@@ -5,37 +5,29 @@ import { redirect } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
 import type { FC, ReactNode } from "react";
 
-// Importa los iconos que vamos a usar
-import {
-  ClipboardList,
-  FilePenLine,
-  Lightbulb,
-  UserPlus,
-  Users,
-  Archive,
-  Lock,
-} from "lucide-react";
+// Importa los iconos
+import { ClipboardList, FilePenLine, Lightbulb, UserPlus, Users, Archive, Lock } from "lucide-react";
 
-// --- SUB-COMPONENTES DE DISEÑO ---
+// --- SUB-COMPONENTES DE DISEÑO CON "LIGHT MODE" ---
 
 const DashboardCard: FC<{ href: string, icon: any, title: string, children: ReactNode }> = ({ href, icon: Icon, title, children }) => {
   return (
     <Link
       href={href}
       className="
-        group relative block p-px rounded-2xl 
-        bg-gradient-to-r from-green-400 to-cyan-400
-        shadow-lg transition-transform duration-300 ease-in-out
-        hover:scale-[1.02] hover:-translate-y-1
+        group block p-6 rounded-2xl 
+        bg-brand-card border border-brand-border
+        shadow-sm transition-all duration-300 ease-in-out
+        hover:border-brand-green hover:shadow-brand-green/20 hover:-translate-y-1
       "
     >
-      <div className="flex h-full flex-col gap-4 bg-gray-900 text-white rounded-[15px] p-6">
+      <div className="flex h-full flex-col gap-4">
         <div className="flex-shrink-0">
-          <Icon className="h-8 w-8 text-green-400" />
+          <Icon className="h-8 w-8 text-brand-green" />
         </div>
         <div className="flex-grow">
-          <h2 className="text-xl font-bold mb-2">{title}</h2>
-          <p className="text-gray-400 text-sm leading-relaxed">{children}</p>
+          <h2 className="text-xl font-bold text-brand-foreground mb-2">{title}</h2>
+          <p className="text-gray-500 text-sm leading-relaxed">{children}</p>
         </div>
       </div>
     </Link>
@@ -44,7 +36,7 @@ const DashboardCard: FC<{ href: string, icon: any, title: string, children: Reac
 
 const DashboardSection: FC<{ title: string, children: ReactNode }> = ({ title, children }) => (
   <section className="mb-12">
-    <h2 className="text-2xl font-semibold tracking-tight text-gray-400 border-b border-white/10 pb-4 mb-8">
+    <h2 className="text-2xl font-semibold tracking-tight text-gray-500 border-b border-brand-border pb-4 mb-8">
       {title}
     </h2>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -52,7 +44,6 @@ const DashboardSection: FC<{ title: string, children: ReactNode }> = ({ title, c
     </div>
   </section>
 );
-
 
 // --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
 
@@ -68,19 +59,19 @@ export default async function DashboardEvaluador() {
   }
 
   return (
+    // Asegúrate de que MainLayout no fuerce un fondo oscuro
     <MainLayout>
-      <div className="p-8">
+      <div className="p-8 bg-brand-background text-brand-foreground">
         <div className="max-w-7xl mx-auto">
           <div className="mb-16">
-            <h1 className="text-5xl font-bold tracking-tight text-white">
-              Bienvenido, <span className="text-green-400">{session.user.name || "Evaluador"}</span>
+            <h1 className="text-5xl font-bold tracking-tight">
+              Bienvenido, <span className="text-brand-green">{session.user.name || "Evaluador"}</span>
             </h1>
-            <p className="mt-4 text-lg text-gray-400">
+            <p className="mt-4 text-lg text-gray-600">
               Este es tu centro de control. Comienza por crear los recursos necesarios o dirígete a las acciones principales.
             </p>
           </div>
 
-          {/* SECCIÓN 1: Creación y Configuración */}
           <DashboardSection title="Paso 1: Creación y Configuración">
             <DashboardCard
               href="/empleados/nuevo"
@@ -99,7 +90,6 @@ export default async function DashboardEvaluador() {
             </DashboardCard>
           </DashboardSection>
 
-          {/* SECCIÓN 2: Acciones Principales */}
           <DashboardSection title="Paso 2: Acciones Principales">
             <DashboardCard
               href="/evaluaciones/nueva"
@@ -118,7 +108,6 @@ export default async function DashboardEvaluador() {
             </DashboardCard>
           </DashboardSection>
 
-          {/* SECCIÓN 3: Consultas y Reportes */}
           <DashboardSection title="Paso 3: Consultas y Reportes">
             <DashboardCard
               href="/evaluaciones/panel"
@@ -144,7 +133,6 @@ export default async function DashboardEvaluador() {
               Consulta el archivo histórico de oportunidades completadas.
             </DashboardCard>
           </DashboardSection>
-
         </div>
       </div>
     </MainLayout>
