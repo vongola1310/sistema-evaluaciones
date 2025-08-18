@@ -1,73 +1,62 @@
-// app/api/empleados/[id]/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-import { prisma } from "@/lib/prisma"
-import { NextResponse } from "next/server"
-import { Prisma } from "@prisma/client"
+// Asegura que esta ruta siempre se ejecute de forma dinámica para evitar caché
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(
-  request: Request, 
-  context: { params: { id: string } }
+  _request: Request,
+  { params }: { params: { id: string } } // ✅ Firma de la función corregida
 ) {
   try {
-    const { id } = context.params
-    const numericId = parseInt(id)
+    const numericId = parseInt(params.id, 10);
 
     if (isNaN(numericId)) {
       return NextResponse.json(
         { error: "El ID proporcionado no es un número válido." },
         { status: 400 }
-      )
+      );
     }
 
-    // 1. Encontrar todas las oportunidades que pertenecen al empleado a eliminar.
-    const opportunitiesToDelete = await prisma.opportunity.findMany({
-      where: { employeeId: numericId },
-      select: { id: true } // Solo necesitamos sus IDs
-    });
-    const opportunityIds = opportunitiesToDelete.map(op => op.id);
+    // ✅ LÓGICA DE BORRADO EN CASCADA CON TRANSACCIÓN
+    // Una transacción asegura que todas las operaciones se completen con éxito, o ninguna lo haga,
+    // manteniendo la base de datos consistente.
+    await prisma.$transaction(async (tx) => {
+      // 1. Borrar todas las evaluaciones del empleado.
+      // Son lo más profundo en la jerarquía, así que se van primero.
+      await tx.evaluation.deleteMany({
+        where: {
+          weeklyReport: {
+            employeeId: numericId,
+          },
+        },
+      });
 
-    // 2. Iniciar la transacción para un borrado seguro y en orden.
-    await prisma.$transaction([
-      // 2a. BORRAR NIETOS: Eliminar todas las evaluaciones que apunten a las oportunidades encontradas.
-      // Esta es la clave para resolver el error.
-      prisma.evaluation.deleteMany({
-        where: { opportunityId: { in: opportunityIds } },
-      }),
-      
-      // 2b. BORRAR HIJOS: Ahora que las evaluaciones se han ido, eliminar las oportunidades.
-      prisma.opportunity.deleteMany({
-        where: { id: { in: opportunityIds } },
-      }),
+      // 2. Borrar todos los reportes semanales del empleado.
+      await tx.weeklyReport.deleteMany({
+        where: { employeeId: numericId },
+      });
 
-      // 2c. (Opcional pero seguro) Borrar evaluaciones directamente ligadas al empleado que no tuvieran oportunidad.
-      // Es una salvaguarda por si acaso.
-      prisma.evaluation.deleteMany({
-        where: { employeeId: numericId }
-      }),
+      // 3. Borrar todas las oportunidades del empleado.
+      // (Aunque tengan cascade, es más seguro ser explícito en una transacción compleja)
+      await tx.opportunity.deleteMany({
+        where: { employeeId: numericId },
+      });
       
-      // 2d. BORRAR ABUELO: Finalmente, eliminar al empleado.
-      prisma.employee.delete({
+      // 4. Finalmente, con todos sus registros dependientes eliminados, borrar al empleado.
+      await tx.employee.delete({
         where: { id: numericId },
-      }),
-    ]);
+      });
+    });
 
-    return new NextResponse(null, { status: 204 });
+    // Si la transacción fue exitosa, devolvemos una respuesta de éxito.
+    return new NextResponse(null, { status: 204 }); // 204 = No Content
 
   } catch (error) {
-    console.error('Error al eliminar empleado:', error)
-    
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2003') {
-         return NextResponse.json(
-          { error: 'No se puede eliminar. El empleado tiene evaluaciones u oportunidades asociadas.' },
-          { status: 409 }
-        )
-      }
-    }
-    
+    console.error('Error al eliminar empleado:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor.' },
+      { error: 'Error interno del servidor al intentar eliminar el empleado.' },
       { status: 500 }
-    )
+    );
   }
 }

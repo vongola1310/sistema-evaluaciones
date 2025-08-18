@@ -3,7 +3,9 @@
 import { useEffect, useState, FC, ReactNode } from 'react'
 import Link from 'next/link'
 import MainLayout from "@/components/MainLayout"
-import { SlidersHorizontal, BarChart, Star, CalendarDays, ChevronLeft, RotateCcw, X, CheckCircle, XCircle, MinusCircle, User } from 'lucide-react'
+import { SlidersHorizontal, BarChart, Star, CalendarDays, ChevronLeft, RotateCcw, X, CheckCircle, XCircle, MinusCircle, User, FileDown } from 'lucide-react'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import { ReportePDFDocument } from '@/components/ReportePDFDocument'
 
 // --- INTERFACES Y DATOS ---
 interface Employee { 
@@ -133,12 +135,25 @@ const ReportModal: FC<{ reportId: number; onClose: () => void }> = ({ reportId, 
             <div className="bg-gray-800 border border-white/10 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
                 <div className="flex justify-between items-center p-4 border-b border-white/10 flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">Reporte Semanal Detallado</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><X /></button>
+                    <div className="flex items-center gap-4">
+                        {!loading && report && (
+                            <PDFDownloadLink
+                                document={<ReportePDFDocument report={report} />}
+                                fileName={`reporte-semanal-${report.employee.lastName}-${reportId}.pdf`}
+                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-3 py-1.5 rounded-md transition-colors"
+                            >
+                                {({ loading }) =>
+                                    loading ? 'Generando PDF...' : <><FileDown size={14}/><span>Descargar PDF</span></>
+                                }
+                            </PDFDownloadLink>
+                        )}
+                        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><X /></button>
+                    </div>
                 </div>
                 {loading ? (
                     <div className="flex-grow flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div></div>
                 ) : !report ? (
-                    <div className="flex-grow flex items-center justify-center text-red-400 p-6 text-center">No se pudieron cargar los detalles del reporte. Por favor, intenta de nuevo.</div>
+                    <div className="flex-grow flex items-center justify-center text-red-400 p-6 text-center">No se pudieron cargar los detalles del reporte.</div>
                 ) : (
                     <div className="flex-grow p-6 overflow-y-auto">
                         <div className="bg-gray-900/50 rounded-lg p-6 flex flex-col md:flex-row items-center gap-8 mb-8">
@@ -216,14 +231,13 @@ const EmployeeReportCard: FC<{ data: Acumulado; onViewDetails: (id: number) => v
 );
 
 // --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
-
 export default function PanelAcumulado() {
-  const [acumulados, setAcumulados] = useState<Acumulado[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [yearFiltro, setYearFiltro] = useState<number | null>(new Date().getFullYear())
-  const [mesFiltro, setMesFiltro] = useState<number | null>(null)
-  const [employeeFiltro, setEmployeeFiltro] = useState<string>('')
+  const [acumulados, setAcumulados] = useState<Acumulado[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [yearFiltro, setYearFiltro] = useState<number | null>(new Date().getFullYear());
+  const [mesFiltro, setMesFiltro] = useState<number | null>(null);
+  const [employeeFiltro, setEmployeeFiltro] = useState<string>('');
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -261,7 +275,7 @@ export default function PanelAcumulado() {
     
     fetchEmployees();
     fetchAcumulado();
-  }, [yearFiltro, mesFiltro, employeeFiltro])
+  }, [yearFiltro, mesFiltro, employeeFiltro]);
 
   const handleClearFilters = () => {
     setYearFiltro(new Date().getFullYear());
@@ -273,63 +287,26 @@ export default function PanelAcumulado() {
     <MainLayout>
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="mb-8">
-            <Link href="/dashboard" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors w-fit mb-2">
-                <ChevronLeft size={16} /> Regresar al Dashboard
-            </Link>
+            <Link href="/dashboard" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors w-fit mb-2"> <ChevronLeft size={16} /> Regresar al Dashboard </Link>
             <h1 className="text-4xl font-bold tracking-tight text-white">Panel de Rendimiento</h1>
             <p className="text-lg text-gray-400 mt-2">Analiza los reportes semanales acumulados por empleado.</p>
         </div>
         
         <div className="bg-gray-800/50 border border-white/10 rounded-xl p-6 mb-8">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                <div className='flex items-center gap-3'>
-                    <SlidersHorizontal className="text-green-400" size={20} />
-                    <h2 className="text-lg font-semibold text-white">Filtros de Búsqueda</h2>
-                </div>
-                <button onClick={handleClearFilters} className="flex items-center gap-2 text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-3 rounded-md transition-colors">
-                    <RotateCcw size={14}/>
-                    Limpiar Filtros
-                </button>
+                <div className='flex items-center gap-3'> <SlidersHorizontal className="text-green-400" size={20} /> <h2 className="text-lg font-semibold text-white">Filtros de Búsqueda</h2> </div>
+                <button onClick={handleClearFilters} className="flex items-center gap-2 text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-3 rounded-md transition-colors"> <RotateCcw size={14}/> Limpiar Filtros </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <select value={employeeFiltro} onChange={(e) => setEmployeeFiltro(e.target.value)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500">
-                    <option value="">Todos los Empleados</option>
-                    {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
-                </select>
-                
-                <select value={mesFiltro ?? ''} onChange={(e) => setMesFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500">
-                    <option value="">Todos los Meses</option>
-                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('es-MX', { month: 'long' })}</option>)}
-                </select>
-
-                <select value={yearFiltro ?? ''} onChange={(e) => setYearFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500">
-                    <option value="">Todos los Años</option>
-                    {Array.from({ length: 5 }, (_, i) => <option key={i} value={new Date().getFullYear() - i}>{new Date().getFullYear() - i}</option>)}
-                </select>
+                <select value={employeeFiltro} onChange={(e) => setEmployeeFiltro(e.target.value)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500"> <option value="">Todos los Empleados</option> {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)} </select>
+                <select value={mesFiltro ?? ''} onChange={(e) => setMesFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500"> <option value="">Todos los Meses</option> {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('es-MX', { month: 'long' })}</option>)} </select>
+                <select value={yearFiltro ?? ''} onChange={(e) => setYearFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-gray-700 p-2 rounded-md border border-gray-600 text-white focus:ring-green-500 focus:border-green-500"> <option value="">Todos los Años</option> {Array.from({ length: 5 }, (_, i) => <option key={i} value={new Date().getFullYear() - i}>{new Date().getFullYear() - i}</option>)} </select>
             </div>
         </div>
-
-        {isLoading ? (
-          <div className="text-center py-10"> <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto"></div> </div>
-        ) : (
-          <div className="space-y-6">
-            {acumulados.length === 0 ? (
-              <div className="text-center py-16 bg-gray-800/50 rounded-lg">
-                <BarChart className="mx-auto text-gray-600" size={48} />
-                <h3 className="mt-4 text-lg font-semibold text-white">No se encontraron reportes</h3>
-                <p className="mt-1 text-sm text-gray-400">Intenta ajustar los filtros o verifica si hay datos para el periodo seleccionado.</p>
-              </div>
-            ) : (
-              acumulados.map((report) => (
-                <EmployeeReportCard key={report.reportId} data={report} onViewDetails={setSelectedReportId} />
-              ))
-            )}
-          </div>
-        )}
-
-        {selectedReportId && (
-            <ReportModal reportId={selectedReportId} onClose={() => setSelectedReportId(null)} />
-        )}
+        
+        {isLoading ? ( <div className="text-center py-10"> <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto"></div> </div> ) : ( <div className="space-y-6"> {acumulados.length === 0 ? ( <div className="text-center py-16 bg-gray-800/50 rounded-lg"> <BarChart className="mx-auto text-gray-600" size={48} /> <h3 className="mt-4 text-lg font-semibold text-white">No se encontraron reportes</h3> <p className="mt-1 text-sm text-gray-400">Intenta ajustar los filtros o verifica si hay datos para el periodo seleccionado.</p> </div> ) : ( acumulados.map((report) => ( <EmployeeReportCard key={report.reportId} data={report} onViewDetails={setSelectedReportId} /> )) )} </div> )}
+        
+        {selectedReportId && ( <ReportModal reportId={selectedReportId} onClose={() => setSelectedReportId(null)} /> )}
       </div>
     </MainLayout>
   )
