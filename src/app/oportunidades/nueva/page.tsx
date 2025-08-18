@@ -1,46 +1,81 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent, FC, ChangeEvent } from 'react' // Importamos ChangeEvent
 import Link from 'next/link'
 import MainLayout from "@/components/MainLayout"
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
+import { Plus, ChevronLeft, Hash, Briefcase, User } from 'lucide-react'
 
+// --- INTERFACES ---
+interface Employee {
+  id: number;
+  fullName: string;
+}
+
+// --- SUB-COMPONENTES DE DISEÑO ---
+const InputField: FC<{ id: string, type: string, label: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, icon: any, required?: boolean }> = 
+({ id, type, label, value, onChange, icon: Icon, required = false }) => (
+  <div>
+    <label htmlFor={id} className="block text-sm font-medium text-gray-300">
+      {label}
+    </label>
+    <div className="relative mt-1">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        <Icon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+      </div>
+      <input
+        id={id}
+        name={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="block w-full rounded-md border-0 py-2.5 pl-10 bg-gray-700/50 text-white shadow-sm ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm"
+      />
+    </div>
+  </div>
+);
+
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
 export default function NuevaOportunidadPage() {
-  const [empleados, setEmpleados] = useState<any[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([]) // ✅ Nombre correcto
   const [number, setNumber] = useState('')
   const [name, setName] = useState('')
-  const [state, setState] = useState('activa')
   const [employeeId, setEmployeeId] = useState('')
-  const [modalMessage, setModalMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/empleados')
+    fetch('/api/empleados', { cache: 'no-store' })
       .then((res) => res.json())
-      .then((data) => setEmpleados(data))
-      .catch(() => setModalMessage('Error al cargar empleados'))
+      .then((data) => setEmployees(data)) // ✅ Nombre correcto
+      .catch(() => toast.error('Error al cargar la lista de empleados'))
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    const loadingToast = toast.loading('Guardando oportunidad...')
 
     try {
       const res = await fetch('/api/oportunidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number, name, state, employeeId })
+        body: JSON.stringify({ number, name, employeeId })
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        setModalMessage(data.error || 'Error al guardar la oportunidad')
-        return
+        throw new Error(data.error || 'Error al guardar la oportunidad')
       }
+      
+      toast.success('Oportunidad creada correctamente', { id: loadingToast })
+      router.push('/oportunidades/listado')
 
-      window.location.href = '/oportunidades/listado'
-    } catch {
-      setModalMessage('Error de conexión con el servidor')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error de conexión', { id: loadingToast });
     } finally {
       setIsSubmitting(false)
     }
@@ -48,101 +83,80 @@ export default function NuevaOportunidadPage() {
 
   return (
     <MainLayout>
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-green-400 mb-6 text-center">
-        Nueva Oportunidad
-      </h1>
-
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-xl mx-auto space-y-6 bg-gray-800 p-6 rounded shadow-lg"
-      >
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Número de Oportunidad</label>
-          <input
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            type="text"
-            required
-            className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded"
-          />
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="mb-8">
+            <Link href="/oportunidades/listado" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors w-fit mb-2">
+              <ChevronLeft size={16} /> Volver al Listado
+            </Link>
+            <h1 className="text-4xl font-bold tracking-tight text-white">Crear Nueva Oportunidad</h1>
+            <p className="text-lg text-gray-400 mt-2">Rellena los siguientes campos para registrar una nueva oportunidad en el sistema.</p>
         </div>
+        
+        <div className="bg-gray-800/50 border border-white/10 rounded-xl shadow-lg p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <InputField
+                    id="number"
+                    type="text"
+                    label="Número de Oportunidad"
+                    value={number}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNumber(e.target.value)} // ✅ Tipo añadido
+                    icon={Hash}
+                    required
+                />
+                <InputField
+                    id="name"
+                    type="text"
+                    label="Nombre de la Oportunidad"
+                    value={name}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)} // ✅ Tipo añadido
+                    icon={Briefcase}
+                    required
+                />
+                <div>
+                    <label htmlFor="employeeId" className="block text-sm font-medium text-gray-300">Asignar a Empleado</label>
+                    <div className="relative mt-1">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                        </div>
+                        <select
+                            id="employeeId"
+                            value={employeeId}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setEmployeeId(e.target.value)} // ✅ Tipo añadido
+                            required
+                            className="block w-full rounded-md border-0 py-2.5 pl-10 bg-gray-700/50 text-white shadow-sm ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-green-500 sm:text-sm"
+                        >
+                            <option value="">Selecciona un empleado</option>
+                            {employees.map((emp) => (
+                                <option key={emp.id} value={emp.id}>
+                                    {emp.fullName}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Nombre</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            type="text"
-            required
-            className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded"
-          />
+                <div className="pt-4 border-t border-white/10">
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-lg font-bold text-white transition-all bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                <span>Guardando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={18}/>
+                                <span>Guardar Oportunidad</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Estado</label>
-          <select
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded"
-          >
-            <option value="activa">Activa</option>
-            <option value="cerrada">Cerrada</option>
-            <option value="en seguimiento">En seguimiento</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Asignar a:</label>
-          <select
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            required
-            className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded"
-          >
-            <option value="">Selecciona un empleado</option>
-            {empleados.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.fullName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex gap-4 justify-between">
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow text-center flex-1"
-          >
-            ← Regresar al Dashboard
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`px-4 py-2 rounded font-semibold shadow flex-1 text-center ${
-              isSubmitting ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {isSubmitting ? 'Guardando...' : 'Guardar Oportunidad'}
-          </button>
-        </div>
-      </form>
-
-      {modalMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded shadow-lg max-w-sm text-center">
-            <p className="text-red-400 font-semibold">{modalMessage}</p>
-            <button
-              onClick={() => setModalMessage(null)}
-              className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
     </MainLayout>
   )
-  
 }

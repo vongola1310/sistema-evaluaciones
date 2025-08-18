@@ -4,9 +4,9 @@ import { useEffect, useState, FC } from 'react'
 import Link from 'next/link'
 import MainLayout from "@/components/MainLayout"
 import { toast } from 'react-hot-toast'
-import { Plus, ChevronLeft, User, Filter, Lightbulb, LockKeyhole } from 'lucide-react'
+import { Plus, ChevronLeft, User, Filter, Lightbulb, LockKeyhole, Trophy, ShieldX, X } from 'lucide-react'
 
-// --- INTERFACES Y DATOS (sin cambios) ---
+// --- INTERFACES Y DATOS ---
 interface Opportunity {
   id: number
   number: string
@@ -22,20 +22,14 @@ interface Opportunity {
 
 // --- SUB-COMPONENTES PARA EL DISEÑO ---
 
-/**
- * LoadingState: Un componente visual para el estado de carga.
- */
-const LoadingState = () => (
+const LoadingState: FC = () => (
   <div className="flex flex-col items-center justify-center text-center py-20">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
     <p className="mt-4 text-lg text-gray-300">Cargando oportunidades...</p>
   </div>
 );
 
-/**
- * EmptyState: Un componente para cuando no hay oportunidades que mostrar.
- */
-const EmptyState = () => (
+const EmptyState: FC = () => (
   <div className="text-center py-20 bg-gray-800/50 rounded-lg">
     <Lightbulb className="mx-auto text-gray-600" size={48} />
     <h3 className="mt-4 text-lg font-semibold text-white">No hay oportunidades abiertas</h3>
@@ -52,13 +46,46 @@ const EmptyState = () => (
   </div>
 );
 
-/**
- * OpportunityCard: La tarjeta que muestra la información de cada oportunidad.
- */
-const OpportunityCard: FC<{ opportunity: Opportunity; onClose: (id: number) => void }> = ({ opportunity, onClose }) => (
+const CloseOpportunityModal: FC<{ 
+    opportunity: Opportunity; 
+    onClose: () => void; 
+    onConfirm: (id: number, status: 'ganada' | 'perdida') => void;
+    isSubmitting: boolean;
+}> = ({ opportunity, onClose, onConfirm, isSubmitting }) => (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+        <div className="bg-gray-800 border border-white/10 rounded-xl w-full max-w-md shadow-2xl p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">Cerrar Oportunidad</h3>
+                <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20}/></button>
+            </div>
+            <p className="text-sm text-gray-400 mb-2">Estás a punto de cerrar la oportunidad:</p>
+            <p className="font-semibold text-white mb-6">{opportunity.number} - {opportunity.name}</p>
+            <p className="text-sm text-gray-400 mb-4">Por favor, selecciona el resultado final:</p>
+            <div className="flex gap-4">
+                <button 
+                    onClick={() => onConfirm(opportunity.id, 'ganada')}
+                    disabled={isSubmitting}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:bg-gray-600 transition-colors"
+                >
+                    <Trophy size={18}/>
+                    <span>Ganada</span>
+                </button>
+                <button 
+                    onClick={() => onConfirm(opportunity.id, 'perdida')}
+                    disabled={isSubmitting}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg disabled:bg-gray-600 transition-colors"
+                >
+                    <ShieldX size={18}/>
+                    <span>Perdida</span>
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+const OpportunityCard: FC<{ opportunity: Opportunity; onOpenCloseModal: (opp: Opportunity) => void }> = ({ opportunity, onOpenCloseModal }) => (
   <div className="bg-gray-800 border border-white/10 rounded-xl shadow-lg p-6 transition-all hover:border-green-500/30 hover:shadow-green-500/5">
     <div className="flex flex-col sm:flex-row justify-between gap-4">
-      {/* Información principal */}
       <div className="flex-grow">
         <div className="flex items-center gap-3 mb-2">
           <span className="bg-gray-700 text-gray-300 text-xs font-mono px-2 py-1 rounded">
@@ -75,11 +102,10 @@ const OpportunityCard: FC<{ opportunity: Opportunity; onClose: (id: number) => v
           <span>{opportunity.employee.firstName} {opportunity.employee.lastName}</span>
         </div>
       </div>
-      {/* Área de Acción */}
-      <div className="flex-shrink-0 flex sm:flex-col items-center justify-end gap-3">
+      <div className="flex-shrink-0 flex items-center">
         <button
-          onClick={() => onClose(opportunity.id)}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 font-semibold px-4 py-2 rounded-lg transition-colors"
+          onClick={() => onOpenCloseModal(opportunity)}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-600/50 hover:bg-gray-600 text-white border border-white/10 font-semibold px-4 py-2 rounded-lg transition-colors"
         >
           <LockKeyhole size={16} />
           <span>Cerrar</span>
@@ -90,35 +116,72 @@ const OpportunityCard: FC<{ opportunity: Opportunity; onClose: (id: number) => v
 );
 
 // --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
-
 export default function ListadoOportunidades() {
-  // --- LÓGICA Y ESTADOS (sin cambios) ---
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEmployee, setSelectedEmployee] = useState('')
+  const [opportunityToClose, setOpportunityToClose] = useState<Opportunity | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchData = async () => { /* Tu lógica aquí */ 
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/oportunidades?status=abierta', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Error al cargar oportunidades');
+        const data = await res.json();
+        setOpportunities(data);
+      } catch (error) {
+        console.error(error);
+        toast.error('No se pudieron cargar las oportunidades');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [])
+
+  const handleCerrarOportunidad = async (id: number, status: 'ganada' | 'perdida') => {
+    setIsSubmitting(true);
+    const toastId = toast.loading(`Cerrando oportunidad como ${status}...`);
     try {
-      const res = await fetch('/api/oportunidades'); if (!res.ok) throw new Error('Error');
-      const data = await res.json(); setOpportunities(data.filter((opp: Opportunity) => opp.state !== 'cerrada'));
-    } catch (error) { console.error(error); toast.error('No se pudieron cargar'); } 
-    finally { setLoading(false); }
+      const res = await fetch(`/api/oportunidades/${id}/cerrar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('Error al cerrar oportunidad');
+
+      setOpportunities((prev) => prev.filter((opp) => opp.id !== id));
+      setOpportunityToClose(null);
+      toast.success('Oportunidad cerrada correctamente', { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo cerrar la oportunidad', { id: toastId });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
-  const cerrarOportunidad = async (id: number) => { /* Tu lógica aquí */
-    if (!confirm('¿Seguro que deseas cerrar esta oportunidad?')) return;
-    try {
-      const res = await fetch(`/api/oportunidades/${id}/cerrar`, { method: 'PATCH' }); if (!res.ok) throw new Error('Error');
-      setOpportunities((prev) => prev.filter((opp) => opp.id !== id)); toast.success('Oportunidad cerrada');
-    } catch (error) { console.error(error); toast.error('No se pudo cerrar'); }
-  }
-  useEffect(() => { fetchData() }, [])
-  const empleadosUnicos = Array.from(new Map(opportunities.map((opp) => [opp.employee.id, { id: opp.employee.id, fullName: `${opp.employee.firstName} ${opp.employee.lastName} (${opp.employee.employeeNo})` }])).values());
-  const filteredOpportunities = selectedEmployee ? opportunities.filter((opp) => opp.employee.id.toString() === selectedEmployee) : opportunities;
+
+  const empleadosUnicos = Array.from(
+    new Map(
+      opportunities.map((opp) => [
+        opp.employee.id,
+        {
+          id: opp.employee.id,
+          fullName: `${opp.employee.firstName} ${opp.employee.lastName} (${opp.employee.employeeNo})`
+        }
+      ])
+    ).values()
+  );
+
+  const filteredOpportunities = selectedEmployee
+    ? opportunities.filter((opp) => opp.employee.id.toString() === selectedEmployee)
+    : opportunities;
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        {/* Encabezado */}
         <div className="mb-8">
           <Link href="/dashboard" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors w-fit mb-2">
             <ChevronLeft size={16} /> Regresar al Dashboard
@@ -135,7 +198,6 @@ export default function ListadoOportunidades() {
           </div>
         </div>
         
-        {/* Barra de Herramientas (Filtro) */}
         <div className="mb-6">
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-gray-400" />
@@ -154,7 +216,6 @@ export default function ListadoOportunidades() {
           </select>
         </div>
 
-        {/* Contenido Principal */}
         {loading ? (
           <LoadingState />
         ) : (
@@ -163,12 +224,21 @@ export default function ListadoOportunidades() {
               <EmptyState />
             ) : (
               filteredOpportunities.map((opp) => (
-                <OpportunityCard key={opp.id} opportunity={opp} onClose={cerrarOportunidad} />
+                <OpportunityCard key={opp.id} opportunity={opp} onOpenCloseModal={setOpportunityToClose} />
               ))
             )}
           </div>
         )}
       </div>
+
+      {opportunityToClose && (
+        <CloseOpportunityModal 
+            opportunity={opportunityToClose}
+            onClose={() => setOpportunityToClose(null)}
+            onConfirm={handleCerrarOportunidad}
+            isSubmitting={isSubmitting}
+        />
+      )}
     </MainLayout>
   )
 }

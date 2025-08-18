@@ -1,10 +1,9 @@
-// src/app/dashboard/page.tsx
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
+import type { FC, ReactNode } from "react";
 
 // Importa los iconos que vamos a usar
 import {
@@ -17,20 +16,9 @@ import {
   Lock,
 } from "lucide-react";
 
-// Importa los tipos necesarios de React
-import type { ReactNode, ElementType } from "react";
+// --- SUB-COMPONENTES DE DISEÑO ---
 
-// ✅ PASO 1: Definimos la interfaz para las props de la tarjeta
-interface DashboardCardProps {
-  href: string;
-  icon: ElementType;
-  title: string;
-  children: ReactNode;
-}
-
-// Un componente reutilizable para las tarjetas para mantener el código limpio
-// ✅ PASO 2: Aplicamos la interfaz a las props del componente
-const DashboardCard = ({ href, icon: Icon, title, children }: DashboardCardProps) => {
+const DashboardCard: FC<{ href: string, icon: any, title: string, children: ReactNode }> = ({ href, icon: Icon, title, children }) => {
   return (
     <Link
       href={href}
@@ -54,6 +42,20 @@ const DashboardCard = ({ href, icon: Icon, title, children }: DashboardCardProps
   );
 };
 
+const DashboardSection: FC<{ title: string, children: ReactNode }> = ({ title, children }) => (
+  <section className="mb-12">
+    <h2 className="text-2xl font-semibold tracking-tight text-gray-400 border-b border-white/10 pb-4 mb-8">
+      {title}
+    </h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {children}
+    </div>
+  </section>
+);
+
+
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
+
 export default async function DashboardEvaluador() {
   const session = await getServerSession(authOptions);
 
@@ -69,32 +71,25 @@ export default async function DashboardEvaluador() {
     <MainLayout>
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
+          <div className="mb-16">
             <h1 className="text-5xl font-bold tracking-tight text-white">
               Bienvenido, <span className="text-green-400">{session.user.name || "Evaluador"}</span>
             </h1>
             <p className="mt-4 text-lg text-gray-400">
-              Selecciona una de las siguientes opciones para empezar a trabajar.
+              Este es tu centro de control. Comienza por crear los recursos necesarios o dirígete a las acciones principales.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* SECCIÓN 1: Creación y Configuración */}
+          <DashboardSection title="Paso 1: Creación y Configuración">
             <DashboardCard
-              href="/evaluaciones/panel"
-              icon={ClipboardList}
-              title="Consultar Evaluaciones"
+              href="/empleados/nuevo"
+              icon={UserPlus}
+              title="Añadir Empleado"
             >
-              Revisa el historial de evaluaciones de cada empleado.
+              Agrega un nuevo miembro del equipo al sistema de evaluaciones.
             </DashboardCard>
             
-            <DashboardCard
-              href="/evaluaciones/nueva"
-              icon={FilePenLine}
-              title="Evaluar Empleados"
-            >
-              Accede al listado de empleados y comienza una nueva evaluación.
-            </DashboardCard>
-
             <DashboardCard
               href="/oportunidades/nueva"
               icon={Lightbulb}
@@ -102,13 +97,35 @@ export default async function DashboardEvaluador() {
             >
               Registra una nueva oportunidad para asignarla a un empleado.
             </DashboardCard>
-            
+          </DashboardSection>
+
+          {/* SECCIÓN 2: Acciones Principales */}
+          <DashboardSection title="Paso 2: Acciones Principales">
             <DashboardCard
-              href="/empleados/nuevo"
-              icon={UserPlus}
-              title="Añadir Empleado"
+              href="/evaluaciones/nueva"
+              icon={FilePenLine}
+              title="Realizar Evaluación Semanal"
             >
-              Agrega un nuevo miembro del equipo al sistema de evaluaciones.
+              Accede al formulario para registrar un nuevo reporte de evaluación.
+            </DashboardCard>
+
+            <DashboardCard
+              href="/oportunidades/listado"
+              icon={Lock}
+              title="Cerrar Oportunidades"
+            >
+              Gestiona y actualiza el estado de las oportunidades abiertas.
+            </DashboardCard>
+          </DashboardSection>
+
+          {/* SECCIÓN 3: Consultas y Reportes */}
+          <DashboardSection title="Paso 3: Consultas y Reportes">
+            <DashboardCard
+              href="/evaluaciones/panel"
+              icon={ClipboardList}
+              title="Panel de Rendimiento"
+            >
+              Analiza los reportes semanales acumulados por empleado.
             </DashboardCard>
             
             <DashboardCard
@@ -120,21 +137,14 @@ export default async function DashboardEvaluador() {
             </DashboardCard>
 
             <DashboardCard
-              href="/oportunidades/listado"
-              icon={Lock}
-              title="Cerrar Oportunidades"
-            >
-              Gestiona y actualiza el estado de las oportunidades abiertas.
-            </DashboardCard>
-
-            <DashboardCard
               href="/oportunidades/cerradas"
               icon={Archive}
-              title="Oportunidades Cerradas"
+              title="Historial de Oportunidades"
             >
               Consulta el archivo histórico de oportunidades completadas.
             </DashboardCard>
-          </div>
+          </DashboardSection>
+
         </div>
       </div>
     </MainLayout>

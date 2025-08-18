@@ -1,35 +1,41 @@
-// src/app/api/oportunidades/[id]/cerrar/route.ts
-import { prisma } from '@/lib/prisma'
+// /api/oportunidades/[id]/cerrar/route.ts
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-interface Params {
-  params: {
-    id: string
-  }
-}
-
-export async function PATCH(req: Request, { params }: Params) {
-  const id = parseInt(params.id, 10)
-
-  if (isNaN(id)) {
-    return NextResponse.json(
-      { error: 'ID inválido' },
-      { status: 400 }
-    )
-  }
-
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const updated = await prisma.opportunity.update({
-      where: { id },
-      data: { state: 'cerrada' },
-    })
+    const id = parseInt(params.id, 10);
+    const { status } = await request.json(); // Esperamos recibir "ganada" or "perdida"
 
-    return NextResponse.json({ success: true, data: updated })
+    if (!['ganada', 'perdida'].includes(status)) {
+      return NextResponse.json({ error: 'Estado inválido.' }, { status: 400 });
+    }
+
+    const opportunityToClose = await prisma.opportunity.findUnique({ where: { id } });
+    if (!opportunityToClose) {
+        return NextResponse.json({ error: 'Oportunidad no encontrada.' }, { status: 404 });
+    }
+
+    // Calculamos los días que estuvo abierta
+    const createdAt = new Date(opportunityToClose.createdAt);
+    const closedAt = new Date();
+    const daysOpen = Math.round((closedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    const updatedOpportunity = await prisma.opportunity.update({
+      where: { id },
+      data: {
+        state: status,
+        closedAt: closedAt,
+        daysOpen: daysOpen,
+      },
+    });
+
+    return NextResponse.json(updatedOpportunity);
   } catch (error) {
-    console.error(error)
-    return NextResponse.json(
-      { error: 'No se pudo cerrar la oportunidad' },
-      { status: 500 }
-    )
+    console.error(`Error closing opportunity ${params.id}:`, error);
+    return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
   }
 }
