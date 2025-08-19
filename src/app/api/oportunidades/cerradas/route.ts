@@ -1,5 +1,5 @@
 // /api/oportunidades/route.ts
-
+/*
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         }
       },
       orderBy: {
-        updateAt: 'desc'
+        createdAt: 'desc'
       }
     })
 
@@ -48,3 +48,4 @@ export async function GET(request: Request) {
 
 // Aquí puedes tener también tu función POST para crear oportunidades
 // ...
+*/
