@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+//import puppeteer from 'puppeteer';
 
 // Asegura que esta ruta se ejecute dinámicamente en el servidor cada vez que se llama.
 export const dynamic = 'force-dynamic';
