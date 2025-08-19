@@ -1,62 +1,99 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { error } from "console";
+// /api/oportunidades/route.ts
 
-export async function GET() {
-  const opportunities = await prisma.opportunity.findMany({
-    select: {
-      id: true,
-      number: true,
-      name: true
-    }
-  })
-  return NextResponse.json(opportunities)
-}
+import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server"
 
-
-export async function POST(request: Request) {
+/**
+ * FUNCIÓN GET: Obtiene una lista de oportunidades.
+ * Puede ser filtrada por estado: 'abierta' o 'cerrada'.
+ */
+export async function GET(request: Request) {
   try {
-    const {number,name,createdBy}=await request.json()
-    
-    // Validación básica
-    if(!number?.trim() || !name?.trim()){
-        return NextResponse.json(
-            {succes: false, error:"Numero y nombre son requeridos"},
-            { status: 400 }
-        )
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+
+    let whereClause: any = {}
+
+    if (status === 'cerrada') {
+      whereClause = { state: { in: ['ganada', 'perdida'] } }
+    } else if (status === 'abierta') {
+      whereClause = { state: 'abierta' }
     }
 
-    const newOpportunity = await prisma.opportunity.create({
-      data: {
-       number: number.trim(),
-       name: name.trim(),
-       ...(createdBy&&{ createdBy:{connect:{email:createdBy } } })
+    const opportunities = await prisma.opportunity.findMany({
+      where: whereClause,
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeNo: true,
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
-//Respuesta Explicita del exito
-return NextResponse.json(
-    {
-        success:true,
-        data:newOpportunity,
-        message:"Oportunidad creada correctamente"
-    },
-    {status:201}//201 creacion exitosa
-)
 
-  } catch (error: any) {
-    //manejo detallado de errores
-    const status = error.code === 'P2002' ? 409 : 500 //duplicados
+    return NextResponse.json(opportunities)
+  } catch (error) {
+    console.error('Error en GET /api/oportunidades:', error)
     return NextResponse.json(
-        {
-            succes: false,
-            error: error.code === 'P2002'
-            ? "El numero de oportunidad ya existe"
-            : "Error interno del servidor",
-            detail: process.env.NODE_ENV === 'development'? error.message:undefined
-        },
-        { status }
+      { error: 'Error al cargar oportunidades' },
+      { status: 500 }
     )
   }
 }
 
-  
+/**
+ * FUNCIÓN POST: Crea una nueva oportunidad.
+ * Garantiza una respuesta en todas las ramas.
+ */
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { name, number, employeeId } = body;
+
+        // 1. Validación de datos de entrada
+        if (!name || !number || !employeeId) {
+            return NextResponse.json({ error: 'Faltan campos requeridos (nombre, número o ID de empleado).' }, { status: 400 });
+        }
+
+        const employeeIdNum = parseInt(employeeId);
+        if (isNaN(employeeIdNum)) {
+            return NextResponse.json({ error: 'El ID del empleado debe ser un número.' }, { status: 400 });
+        }
+
+        // 2. Verificar que el empleado exista
+        const employeeExists = await prisma.employee.findUnique({
+            where: { id: employeeIdNum }
+        });
+        if (!employeeExists) {
+            return NextResponse.json({ error: `El empleado con ID ${employeeIdNum} no existe.` }, { status: 404 });
+        }
+        
+        // 3. Crear la oportunidad en la base de datos
+        const newOpportunity = await prisma.opportunity.create({
+            data: {
+                name,
+                number,
+                employeeId: employeeIdNum,
+                state: 'abierta', // El estado por defecto siempre es 'abierta'
+            }
+        });
+
+        return NextResponse.json(newOpportunity, { status: 201 });
+
+    } catch (error: any) {
+        console.error('Error en POST /api/oportunidades:', error);
+        
+        // Manejar errores específicos de Prisma (ej: número de oportunidad duplicado)
+        if (error.code === 'P2002' && error.meta?.target?.includes('number')) {
+            return NextResponse.json({ error: 'Ya existe una oportunidad con ese número.' }, { status: 409 });
+        }
+        
+        return NextResponse.json({ error: 'Error interno del servidor al crear la oportunidad.' }, { status: 500 });
+    }
+}

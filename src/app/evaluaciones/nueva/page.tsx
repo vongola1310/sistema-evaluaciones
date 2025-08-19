@@ -1,279 +1,153 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent, FC, ReactNode, ChangeEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import MainLayout from "@/components/MainLayout"
+import { CalendarRange, UserCheck, FileText, Send, MessageSquare, ChevronLeft, Info } from 'lucide-react'
 
+// --- DATOS Y TIPOS ---
+const camposEvaluacion = [ { key: 'updatedDate', label: '¿Fecha de cierre realista y actualizada?' }, { key: 'correctPriceQty', label: '¿Productos/servicios, precios y cantidades correctos?' }, { key: 'quoteUploaded', label: '¿Se ha cargado el PDF de la cotización?' }, { key: 'description', label: '¿Descripción clara del problema y la solución?' }, { key: 'recentFollowUp', label: '¿Actividad reciente registrada (últimos 5 días hábiles)?' }, { key: 'correctStage', label: '¿Etapa del pipeline correcta?' }, { key: 'realisticChance', label: '¿El % de cierre refleja la realidad?' }, { key: 'nextStepsDefined', label: '¿Tareas o actividades futuras definidas?' }, { key: 'contactAssigned', label: '¿Contacto principal registrado con datos completos?' }, { key: 'commentsUpdated', label: '¿Comentarios recientes de acuerdos con el cliente?' }, ];
+interface Employee { id: number; fullName: string }
+interface Opportunity { id: number; number: string; name: string; employee: { id: number; } }
 
-const camposEvaluacion = [
-  { key: 'updatedDate', label: 'Fecha actualizada' },
-  { key: 'correctPriceQty', label: 'Precio y cantidad correctos' },
-  { key: 'quoteUploaded', label: 'Cotización subida' },
-  { key: 'description', label: 'Descripción' },
-  { key: 'recentFollowUp', label: 'Seguimiento reciente' },
-  { key: 'correctStage', label: 'Etapa correcta' },
-  { key: 'realisticChance', label: 'Probabilidad realista' },
-  { key: 'nextStepsDefined', label: 'Siguientes pasos definidos' },
-  { key: 'contactAssigned', label: 'Contacto asignado' },
-  { key: 'commentsUpdated', label: 'Comentarios actualizados' },
-]
+// --- SUB-COMPONENTES DE DISEÑO (LIGHT MODE) ---
 
-interface Employee {
-  id: number
-  fullName:string
-}
+const FormSection: FC<{ icon: any, title: string, subtitle?: string, children: ReactNode }> = ({ icon: Icon, title, subtitle, children }) => (
+    <div className="bg-brand-background border border-brand-border rounded-xl shadow-sm">
+        <div className="p-4 border-b border-brand-border">
+            <div className="flex items-center gap-3">
+                <Icon className="text-brand-green" size={20} />
+                <h3 className="text-lg font-semibold text-brand-foreground">{title}</h3>
+            </div>
+            {subtitle && <p className="text-sm text-gray-500 mt-1 ml-9">{subtitle}</p>}
+        </div>
+        <div className="p-6 space-y-6">{children}</div>
+    </div>
+);
 
-interface Opportunity {
-  id: number
-  number: string
-  name: string
-}
+const EvaluationField: FC<{ oppId: number, field: any, value: string, onValueChange: Function, comment: string, onCommentChange: Function }> = ({ oppId, field, value, onValueChange, comment, onCommentChange }) => {
+    const options = [ { value: '0', label: 'Incumplido', style: 'bg-red-500 border-red-600 text-white' }, { value: '1', label: 'Parcial', style: 'bg-yellow-500 border-yellow-600 text-white' }, { value: '2', label: 'Cumplido', style: 'bg-green-500 border-green-600 text-white' }, { value: 'N/A', label: 'N/A', style: 'bg-gray-500 border-gray-600 text-white' }, ];
+    const [showComment, setShowComment] = useState(!!comment);
+    
+    return (
+        <div className="p-3 bg-brand-card border border-brand-border/60 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-3">{field.label}</label>
+            <div className="flex flex-wrap items-center gap-2">
+                {options.map(opt => (
+                    <button key={opt.value} type="button" onClick={() => onValueChange(oppId, field.key, opt.value)}
+                        className={`px-4 py-2 text-xs font-bold rounded-full transition-all duration-200 border-2 ${value === opt.value ? opt.style : 'bg-gray-200 border-transparent hover:border-gray-400 text-gray-600'}`}>
+                        {opt.label}
+                    </button>
+                ))}
+                <button type="button" onClick={() => setShowComment(!showComment)} className="ml-auto text-gray-400 hover:text-brand-foreground transition-colors" title="Añadir comentario"><MessageSquare size={18} /></button>
+            </div>
+            {showComment && (<textarea placeholder="Comentario (opcional)" value={comment || ''} onChange={(e) => onCommentChange(oppId, field.key, e.target.value)} className="w-full bg-gray-50 p-2 rounded border border-gray-300 mt-3 text-sm focus:border-brand-green focus:ring-brand-green" rows={2} />)}
+        </div>
+    );
+};
 
-export default function NuevaEvaluacion() {
+const OpportunityEvaluationCard: FC<{ opportunity: Opportunity, children: ReactNode }> = ({ opportunity, children }) => {
+    const [isOpen, setIsOpen] = useState(true);
+    return (
+        <div className="bg-brand-background border border-brand-border rounded-lg">
+            <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left">
+                <div className="font-semibold text-brand-foreground">{opportunity.number} - {opportunity.name}</div>
+                <ChevronLeft className={`text-gray-500 transition-transform duration-300 ${isOpen ? '-rotate-90' : ''}`} />
+            </button>
+            {isOpen && ( <div className="p-4 border-t border-brand-border space-y-3">{children}</div> )}
+        </div>
+    );
+};
+
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
+export default function NuevaEvaluacionSemanal() {
   const { data: session, status } = useSession()
   const router = useRouter()
-
   const [employees, setEmployees] = useState<Employee[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<string>('')
-  const [selectedOpportunity, setSelectedOpportunity] = useState<string>('')
-  const [respuestas, setRespuestas] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [respuestas, setRespuestas] = useState<Record<string, Record<string, string>>>({})
+  const [comentarios, setComentarios] = useState<Record<string, Record<string, string>>>({})
+  
+  useEffect(() => { const loadData = async () => { try { const [empRes, oppRes] = await Promise.all([fetch('/api/empleados'), fetch('/api/oportunidades?status=abierta')]); const [empData, oppData] = await Promise.all([empRes.json(), oppRes.json()]); setEmployees(empData); setOpportunities(oppData); } catch (error) { toast.error('Error al cargar datos necesarios'); } finally { setIsLoading(false) } }; if (status === 'authenticated') loadData(); if (status === 'unauthenticated') router.push('/login'); }, [status, router])
+  const handleValueChange = (oppId: number, campo: string, valor: string) => { setRespuestas(prev => ({ ...prev, [oppId]: { ...prev[oppId], [campo]: valor } })) }
+  const handleCommentChange = (oppId: number, campo: string, valor: string) => { setComentarios(prev => ({ ...prev, [oppId]: { ...prev[oppId], [campo]: valor } })) }
+  const handleSubmit = async (e: FormEvent) => { e.preventDefault(); if (!startDate || !endDate || !selectedEmployee) { toast.error('Por favor, selecciona el período y un empleado.'); return; } setIsSubmitting(true); const loadingToast = toast.loading('Procesando y guardando reporte semanal...'); try { const employeeId = parseInt(selectedEmployee); const evaluatedOppIds = Object.keys(respuestas); if (evaluatedOppIds.length === 0) { throw new Error('Debes evaluar al menos una oportunidad.'); } const evaluationsData = evaluatedOppIds.map(oppId => { const oppResponses = respuestas[oppId]; let scoreRaw = 0; let questionsAnswered = 0; camposEvaluacion.forEach(field => { const value = oppResponses[field.key]; if (value && value !== 'N/A') { scoreRaw += parseInt(value); questionsAnswered++; } }); const possibleScore = questionsAnswered * 2; return { opportunityId: parseInt(oppId), scoreRaw, possibleScore, responses: oppResponses, comments: comentarios[oppId] || {}, }; }); const weeklyTotal = evaluationsData.reduce((acc, current) => { acc.totalScore += current.scoreRaw; acc.possibleScore += current.possibleScore; return acc; }, { totalScore: 0, possibleScore: 0 }); const averageScore = weeklyTotal.possibleScore > 0 ? (weeklyTotal.totalScore / weeklyTotal.possibleScore) * 20 : 0; let rubrica = ''; const roundedAverage = Math.round(averageScore); if (roundedAverage >= 18) rubrica = 'Excelente'; else if (roundedAverage >= 15) rubrica = 'Bueno'; else if (roundedAverage >= 12) rubrica = 'Necesita mejora'; else rubrica = 'Bajo desempeño'; const payload = { employeeId, startDate, endDate, ...weeklyTotal, averageScore, rubrica, evaluationsData }; const res = await fetch('/api/evaluaciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!res.ok) { const result = await res.json(); throw new Error(result.error || 'Error al guardar el reporte'); } await fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'weekly-reports' }) }); toast.success('Reporte semanal guardado correctamente', { id: loadingToast }); router.push('/evaluaciones/panel'); } catch (error) { toast.error(error instanceof Error ? error.message : 'Un error inesperado ocurrió', { id: loadingToast }); } finally { setIsSubmitting(false); } }
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    const loadData = async () => {
-      if (status === 'authenticated' && session.user.role === 'evaluador') {
-        try {
-          const [empRes, oppRes] = await Promise.all([
-            fetch('/api/empleados'),
-            fetch('/api/oportunidades')
-          ])
-
-          if (!empRes.ok || !oppRes.ok) {
-            throw new Error('Error al cargar datos')
-          }
-
-          const [empData, oppData] = await Promise.all([
-            empRes.json(),
-            oppRes.json()
-          ])
-
-          setEmployees(empData)
-          setOpportunities(oppData)
-          setIsLoading(false)
-
-        } catch (error) {
-          console.error('Error:', error)
-          toast.error('Error al cargar datos necesarios')
-          router.push('/dashboard')
-        }
-      }
-    }
-
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (status === 'authenticated' && session.user.role !== 'evaluador') {
-      router.push('/no-autorizado')
-    } else {
-      loadData()
-    }
-  }, [status, session, router])
-
-  const handleChange = (campo: string, valor: string) => {
-    setRespuestas(prev => ({ ...prev, [campo]: valor }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setIsSubmitting(true)
-
-  try {
-    // Validación básica
-    if (!selectedEmployee || !selectedOpportunity) {
-      throw new Error('Selecciona un empleado y una oportunidad')
-    }
-
-    // Convertir IDs a números
-    const employeeId = parseInt(selectedEmployee)
-    const opportunityId = parseInt(selectedOpportunity)
-
-    // Validar conversión
-    if (isNaN(employeeId) || isNaN(opportunityId)) {
-      throw new Error('IDs de empleado u oportunidad inválidos')
-    }
-
-    // Obtener datos completos con validación
-    const empleadoSeleccionado = employees.find(e => e.id === employeeId)
-    const oportunidadSeleccionada = opportunities.find(o => o.id === opportunityId)
-
-    if (!empleadoSeleccionado) {
-      throw new Error('Empleado seleccionado no encontrado')
-    }
-
-    if (!oportunidadSeleccionada) {
-      throw new Error('Oportunidad seleccionada no encontrada')
-    }
-
-    // Calcular puntuación
-    let suma = 0
-    let camposValidos = 0
-    const respuestasNumericas: Record<string, string> = {}
-
-    camposEvaluacion.forEach(({ key }) => {
-      const val = respuestas[key] || '0'
-      respuestasNumericas[key] = val
-      
-      if (val !== 'N/A') {
-        suma += parseInt(val)
-        camposValidos++
-      }
-    })
-
-    const scoreRaw = suma
-    const scoreAverage = camposValidos > 0 ? (suma / (camposValidos * 2)) * 100 : 0
-
-    // Mostrar carga
-    const loadingToast = toast.loading('Guardando evaluación...')
-
-    // Enviar datos al backend
-    const res = await fetch('/api/evaluaciones', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        employeeId,
-        opportunityId,
-        ...respuestasNumericas,
-        scoreRaw,
-        scoreAverage
-      })
-    })
-
-    const result = await res.json()
-
-    if (!res.ok) {
-      throw new Error(result.error || 'Error al guardar evaluación')
-    }
-
-    // Éxito - Redirigir con parámetros de consulta
-    const params = new URLSearchParams({
-      success: '1',
-      employee: `${empleadoSeleccionado.fullName}`,
-      opportunity: `${oportunidadSeleccionada.number} - ${oportunidadSeleccionada.name}`
-    })
-
-    router.push(`/evaluaciones/resumen/${result.data.id}`)
-    toast.success('Evaluación guardada correctamente', { id: loadingToast })
-
-  } catch (error) {
-    console.error('Error:', error)
-    toast.error(
-      error instanceof Error ? error.message : 'Error desconocido al guardar',
-      { duration: 5000 }
-    )
-  } finally {
-    setIsSubmitting(false)
-  }
-}
+  const oportunidadesFiltradas = opportunities.filter(opp => opp.employee?.id === Number(selectedEmployee));
 
   if (isLoading || status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-xl">Cargando datos...</p>
-          <p className="text-sm text-gray-400 mt-2">Por favor espere</p>
+      <MainLayout>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Nueva Evaluación</h2>
-
-        {/* Selectores de Empleado y Oportunidad */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="space-y-1">
-            <label className="block text-sm font-medium">Empleado:</label>
-            <select
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              required
-              disabled={isSubmitting}
-              className="w-full bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-            >
-              <option value="">Seleccione un empleado</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id.toString()}>
-                  {emp.fullName} 
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium">Oportunidad:</label>
-            <select
-              value={selectedOpportunity}
-              onChange={(e) => setSelectedOpportunity(e.target.value)}
-              required
-              disabled={isSubmitting}
-              className="w-full bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-            >
-              <option value="">Seleccione una oportunidad</option>
-              {opportunities.map((opp) => (
-                <option key={opp.id} value={opp.id}>
-                  {opp.number} - {opp.name}
-                </option>
-              ))}
-            </select>
-          </div>
+    <MainLayout>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="mb-8">
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-brand-green hover:text-green-700 w-fit">
+            <ChevronLeft size={16} /> Regresar al Dashboard
+          </Link>
+          <h1 className="text-4xl font-bold tracking-tight text-brand-foreground mt-2">Nuevo Reporte Semanal</h1>
+          <p className="text-lg text-gray-600 mt-2">Selecciona un período, un empleado y evalúa sus oportunidades abiertas.</p>
         </div>
-
-        {/* Campos de evaluación */}
-        <div className="space-y-4 mb-6">
-          {camposEvaluacion.map(({ key, label }) => (
-            <div key={key} className="space-y-1">
-              <label className="block text-sm font-medium">{label}:</label>
-              <select
-                value={respuestas[key] || ''}
-                onChange={(e) => handleChange(key, e.target.value)}
-                required
-                disabled={isSubmitting}
-                className="w-full bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-              >
-                <option value="">Seleccione una opción</option>
-                <option value="0">0 - Incumplido</option>
-                <option value="1">1 - Parcialmente cumplido</option>
-                <option value="2">2 - Totalmente cumplido</option>
-                <option value="N/A">N/A - No aplica</option>
-              </select>
+        
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <FormSection icon={CalendarRange} title="Paso 1: Define el Período y Empleado">
+            <div className='grid md:grid-cols-2 gap-6'>
+              <div><label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio</label><input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} required className="w-full bg-gray-50 p-2 rounded-md border border-gray-300 focus:ring-brand-green focus:border-brand-green"/></div>
+              <div><label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin</label><input type="date" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} required className="w-full bg-gray-50 p-2 rounded-md border border-gray-300 focus:ring-brand-green focus:border-brand-green"/></div>
             </div>
-          ))}
-        </div>
+            <div><label htmlFor="employee-select" className="block text-sm font-medium text-gray-700 mb-2">Empleado a Evaluar</label><select id="employee-select" value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)} required className="w-full bg-gray-50 p-2 rounded-md border border-gray-300 focus:ring-brand-green focus:border-brand-green"><option value="">Selecciona un empleado</option>{employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}</select></div>
+          </FormSection>
 
-        {/* Botón de enviar */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full py-3 px-4 rounded font-bold transition duration-200 ${
-            isSubmitting
-              ? 'bg-gray-600 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
-        >
-          {isSubmitting ? 'Guardando...' : 'Guardar Evaluación'}
-        </button>
-      </form>
-      <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
-  ← Regresar al Dashboard
-</Link>
+          {selectedEmployee && (
+            <FormSection icon={FileText} title="Paso 2: Evalúa las Oportunidades" subtitle={`${oportunidadesFiltradas.length} oportunidades abiertas encontradas`}>
+              {oportunidadesFiltradas.length > 0 ? (
+                <div className="space-y-4">
+                  {oportunidadesFiltradas.map(opp => (
+                    <OpportunityEvaluationCard key={opp.id} opportunity={opp}>
+                      {camposEvaluacion.map(field => (
+                        <EvaluationField
+                          key={field.key}
+                          oppId={opp.id}
+                          field={field}
+                          value={respuestas[opp.id]?.[field.key] || ''}
+                          onValueChange={handleValueChange}
+                          comment={comentarios[opp.id]?.[field.key] || ''}
+                          onCommentChange={handleCommentChange}
+                        />
+                      ))}
+                    </OpportunityEvaluationCard>
+                  ))}
+                </div>
+              ) : ( <div className="text-center text-gray-500 py-8">No hay oportunidades abiertas para evaluar para este empleado.</div> )}
+            </FormSection>
+          )}
 
-    </div>
+          <FormSection icon={Send} title="Paso 3: Guardar Reporte">
+             <div className="flex items-center gap-3 bg-blue-100 border border-blue-200 text-blue-800 text-sm p-4 rounded-lg">
+                <Info size={24} />
+                <span>Al guardar, se generará un reporte semanal consolidado. Asegúrate de haber completado todas las evaluaciones deseadas para este período.</span>
+             </div>
+            <button type="submit" disabled={isSubmitting || !selectedEmployee} className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-lg font-bold text-white transition-all bg-brand-green hover:bg-green-700 disabled:bg-gray-400">
+                {isSubmitting ? ( <> <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> <span>Guardando...</span> </> ) : 'Generar y Guardar Reporte Semanal'}
+            </button>
+          </FormSection>
+        </form>
+      </div>
+    </MainLayout>
   )
 }

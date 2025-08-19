@@ -1,210 +1,112 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, FC, ReactNode } from 'react'
 import Link from 'next/link'
+import MainLayout from "@/components/MainLayout"
+import { SlidersHorizontal, BarChart, Star, CalendarDays, ChevronLeft, RotateCcw, X, CheckCircle, XCircle, MinusCircle, User } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
-interface Acumulado {
-    employee: {
-        firstName: string
-        lastName: string
-        employeeNo: string
+// --- INTERFACES Y DATOS ---
+interface Employee { id: number; fullName: string; }
+interface Acumulado { reportId: number; employee: { firstName: string; lastName: string; employeeNo: string; }; totalEvaluaciones: number; totalScore: number; totalPosibles: number; averageScore: number; rubrica: string; periodo: string; }
+interface FullReport extends Acumulado { evaluator: { name: string | null }; startDate: string; endDate: string; evaluations: { id: number; opportunity: { number: string; name: string; }; scoreRaw: number; possibleScore: number; [key: string]: any; }[]; possibleScore: number; }
+const camposEvaluacion = [ { key: 'updatedDate', label: 'Fecha de cierre realista y actualizada' }, { key: 'correctPriceQty', label: 'Productos/servicios, precios y cantidades correctos' }, { key: 'quoteUploaded', label: 'PDF de la cotización cargado' }, { key: 'description', label: 'Descripción clara del problema y la solución' }, { key: 'recentFollowUp', label: 'Actividad reciente registrada' }, { key: 'correctStage', label: 'Etapa del pipeline correcta' }, { key: 'realisticChance', label: 'Porcentaje de cierre realista' }, { key: 'nextStepsDefined', label: 'Tareas o actividades futuras definidas' }, { key: 'contactAssigned', label: 'Contacto principal registrado' }, { key: 'commentsUpdated', label: 'Comentarios recientes de acuerdos' }, ];
+
+// --- IMPORTACIÓN DINÁMICA ---
+const PDFDownloader = dynamic(
+    () => import('@/components/ClientPDFDownloader'),
+    { 
+        ssr: false,
+        loading: () => <span className="text-xs text-gray-400">Cargando...</span> 
     }
-    totalEvaluaciones: number
-    totalScore: number
-    totalPosibles: number
-    porcentaje: string
-    rubrica: string
-    year: number
-    trimestre: number
-}
+);
 
-export default function PanelAcumulado() {
-    const [acumulados, setAcumulados] = useState<Acumulado[]>([])
+// --- SUB-COMPONENTES DE DISEÑO (LIGHT MODE) ---
+const CircularProgressBar: FC<{ score: number; size?: 'small' | 'large' }> = ({ score, size = 'small' }) => { const sqSize = size === 'small' ? 100 : 120; const strokeWidth = size === 'small' ? 10 : 12; const radius = (sqSize - strokeWidth) / 2; const viewBox = `0 0 ${sqSize} ${sqSize}`; const percentage = score ? (score / 20) * 100 : 0; const dashArray = radius * Math.PI * 2; const dashOffset = dashArray - dashArray * percentage / 100; let colorClass = 'text-brand-green'; if (percentage < 75) colorClass = 'text-yellow-500'; if (percentage < 60) colorClass = 'text-red-500'; const textSize = size === 'small' ? 'text-xl' : 'text-2xl'; return ( <div className={`relative ${size === 'small' ? 'w-24 h-24' : 'w-32 h-32'}`}> <svg width={sqSize} height={sqSize} viewBox={viewBox} className="transform -rotate-90"> <circle className="text-gray-200" cx={sqSize / 2} cy={sqSize / 2} r={radius} strokeWidth={`${strokeWidth}px`} stroke="currentColor" fill="transparent" /> <circle className={`${colorClass} transition-all duration-500`} cx={sqSize / 2} cy={sqSize / 2} r={radius} strokeWidth={`${strokeWidth}px`} stroke="currentColor" fill="transparent" strokeDasharray={dashArray} strokeDashoffset={dashOffset} strokeLinecap="round" /> </svg> <div className="absolute inset-0 flex items-center justify-center"> <span className={`${textSize} font-bold ${colorClass}`}>{(score || 0).toFixed(1)}<span className='text-sm font-light text-gray-500'>/20</span></span> </div> </div> ); };
+const ScoreIcon: FC<{ score: string }> = ({ score }) => { if (score === '2') return <CheckCircle className="text-green-500" />; if (score === '1') return <MinusCircle className="text-yellow-500" />; if (score === '0') return <XCircle className="text-red-500" />; return <span className="text-gray-500 text-sm">N/A</span>; };
+const StatCard: FC<{ icon: any, label: string, value: string | number }> = ({ icon: Icon, label, value }) => ( <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-3 border border-gray-200"> <div className="bg-gray-200 p-2 rounded-md"> <Icon className="text-gray-500" size={16} /> </div> <div> <p className="text-xs text-gray-500">{label}</p> <p className="text-sm font-bold text-brand-foreground">{value}</p> </div> </div> );
+const getRubricaColor = (rubrica: string) => { switch (rubrica.toLowerCase()) { case 'excelente': return 'bg-green-100 text-green-800 border-green-200'; case 'bueno': return 'bg-cyan-100 text-cyan-800 border-cyan-200'; case 'necesita mejora': return 'bg-yellow-100 text-yellow-800 border-yellow-200'; case 'bajo desempeño': return 'bg-red-100 text-red-800 border-red-200'; default: return 'bg-gray-100 text-gray-800 border-gray-200'; } };
 
-    const [trimestreFiltro, setTrimestreFiltro] = useState<number | null>(null)
-    const [yearFiltro, setYearFiltro] = useState<number | null>(null)
-    const [mesFiltro, setMesFiltro] = useState<number | null>(null)
-    const [fechaInicio, setFechaInicio] = useState<string>('')
-    const [fechaFin, setFechaFin] = useState<string>('')
-
-    const fetchAcumulado = async () => {
-        const params = new URLSearchParams()
-
-        if (fechaInicio && fechaFin) {
-            params.append('fechaInicio', fechaInicio)
-            params.append('fechaFin', fechaFin)
-        } else if (mesFiltro && yearFiltro) {
-            params.append('mes', String(mesFiltro))
-            params.append('year', String(yearFiltro))
-        } else if (trimestreFiltro && yearFiltro) {
-            params.append('trimestre', String(trimestreFiltro))
-            params.append('year', String(yearFiltro))
-        }
-
-        const res = await fetch(`/api/evaluaciones/acumulado?${params.toString()}`)
-        const data = await res.json()
-        if (res.ok) {
-            setAcumulados(data.data)
-        }
-    }
-
-    useEffect(() => {
-        fetchAcumulado()
-    }, [trimestreFiltro, yearFiltro, mesFiltro, fechaInicio, fechaFin])
-
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ]
-
-    const formatearFecha = (fecha: string) => {
-        const [a, m, d] = fecha.split('-')
-        return `${d}/${m}/${a}`
-    }
-
-    const mostrarPeriodo = (e: Acumulado) => {
-        if (fechaInicio && fechaFin) {
-            return `Semana del ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFin)}`
-        } else if (mesFiltro) {
-            return `Mes: ${meses[mesFiltro - 1]}`
-        } else if (trimestreFiltro && yearFiltro) {
-            return `Q${e.trimestre} ${e.year}`
-        } else {
-            return 'Sin filtro'
-        }
-    }
-
+const ReportModal: FC<{ reportId: number; onClose: () => void }> = ({ reportId, onClose }) => {
+    const [report, setReport] = useState<FullReport | null>(null);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => { if (!reportId) return; const fetchReportDetails = async () => { setLoading(true); try { const res = await fetch(`/api/reports/${reportId}`); const data = await res.json(); if (res.ok) { setReport(data); } } catch (error) { console.error("Error fetching report details", error); } finally { setLoading(false); } }; fetchReportDetails(); }, [reportId]);
+    
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
-            <h1 className="text-3xl font-bold text-green-400 mb-6 text-center">Panel Acumulado por Empleado</h1>
-
-            <div className="flex flex-wrap gap-4 mb-6">
-                {/* Filtro de trimestre */}
-                <select
-                    value={trimestreFiltro ?? ''}
-                    onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null
-                        setTrimestreFiltro(val)
-                        setMesFiltro(null)
-                        setFechaInicio('')
-                        setFechaFin('')
-                    }}
-                    className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-                >
-                    <option value="">Todos los trimestres</option>
-                    <option value="1">Q1</option>
-                    <option value="2">Q2</option>
-                    <option value="3">Q3</option>
-                    <option value="4">Q4</option>
-                </select>
-
-                {/* Filtro de año */}
-                <select
-                    value={yearFiltro ?? ''}
-                    onChange={(e) => setYearFiltro(e.target.value ? Number(e.target.value) : null)}
-                    className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-                >
-                    <option value="">Todos los años</option>
-                    {Array.from({ length: 5 }, (_, i) => {
-                        const year = new Date().getFullYear() - i
-                        return <option key={year} value={year}>{year}</option>
-                    })}
-                </select>
-
-                {/* Filtro de mes */}
-                <select
-                    value={mesFiltro ?? ''}
-                    onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null
-                        setMesFiltro(val)
-                        setTrimestreFiltro(null)
-                        setFechaInicio('')
-                        setFechaFin('')
-                    }}
-                    className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-                >
-                    <option value="">Todos los meses</option>
-                    {meses.map((mes, i) => (
-                        <option key={i + 1} value={i + 1}>{mes}</option>
-                    ))}
-                </select>
-
-                {/* Fecha Inicio */}
-                <div className="flex flex-col">
-                    <label htmlFor="fechaInicio" className="text-sm text-gray-300 mb-1">Fecha inicio</label>
-                    <input
-                        id="fechaInicio"
-                        type="date"
-                        value={fechaInicio}
-                        onChange={(e) => {
-                            setFechaInicio(e.target.value)
-                            setMesFiltro(null)
-                            setTrimestreFiltro(null)
-                        }}
-                        className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-                    />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+            <div className="bg-brand-background border border-brand-border rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+                <div className="flex justify-between items-center p-4 border-b border-brand-border flex-shrink-0">
+                    <h2 className="text-xl font-bold text-brand-foreground">Reporte Semanal Detallado</h2>
+                    <div className="flex items-center gap-4">
+                        {!loading && report && ( <PDFDownloader report={report} /> )}
+                        <button onClick={onClose} className="text-gray-400 hover:text-brand-foreground"><X /></button>
+                    </div>
                 </div>
-
-                {/* Fecha Fin */}
-                <div className="flex flex-col">
-                    <label htmlFor="fechaFin" className="text-sm text-gray-300 mb-1">Fecha final</label>
-                    <input
-                        id="fechaFin"
-                        type="date"
-                        value={fechaFin}
-                        onChange={(e) => {
-                            setFechaFin(e.target.value)
-                            setMesFiltro(null)
-                            setTrimestreFiltro(null)
-                        }}
-                        className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-                    />
-                </div>
+                {loading ? ( <div className="flex-grow flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green"></div></div> ) : !report ? ( <div className="flex-grow flex items-center justify-center text-red-600 p-6 text-center">No se pudieron cargar los detalles del reporte.</div> ) : (
+                    <div className="flex-grow p-6 overflow-y-auto">
+                        <div className="bg-brand-card rounded-lg p-6 flex flex-col md:flex-row items-center gap-8 mb-8 border border-brand-border">
+                            <CircularProgressBar score={report.averageScore} size="large" />
+                            <div className="flex-grow w-full">
+                                <div className="flex justify-between items-start">
+                                    <div> <p className="text-gray-500">Empleado: <span className="font-semibold text-brand-foreground">{report.employee.firstName} {report.employee.lastName}</span></p> <p className="text-gray-500">Evaluador: <span className="font-semibold text-brand-foreground">{report.evaluator.name}</span></p> </div>
+                                    <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${getRubricaColor(report.rubrica)}`}>{report.rubrica}</span>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-4 border-t border-brand-border pt-4">
+                                     <StatCard icon={CalendarDays} label="Periodo" value={`${new Date(report.startDate).toLocaleDateString('es-MX')} - ${new Date(report.endDate).toLocaleDateString('es-MX')}`} />
+                                     <StatCard icon={BarChart} label="Ops. Evaluadas" value={report.evaluations.length} />
+                                     <StatCard icon={Star} label="Puntaje Total" value={`${report.totalScore} / ${report.possibleScore}`} />
+                                </div>
+                            </div>
+                        </div>
+                        <h3 className="text-lg font-semibold mb-4 text-brand-foreground">Desglose de Evaluaciones</h3>
+                        <div className="space-y-4">
+                           {report.evaluations.map(ev => (
+                                <div key={ev.id} className="bg-brand-background border border-brand-border rounded-lg p-4">
+                                    <div className="flex justify-between items-center mb-3"> <h4 className="font-semibold text-brand-foreground">{ev.opportunity.number} - {ev.opportunity.name}</h4> <p className="text-sm font-bold text-gray-600">Puntaje: <span className="text-brand-green">{ev.scoreRaw} / {ev.possibleScore}</span></p> </div>
+                                    <div className="overflow-x-auto"> <table className="w-full text-sm"> <tbody> {camposEvaluacion.map(campo => { const value = ev[campo.key]; const commentKey = `${campo.key}Comment`; const comment = ev[commentKey]; return ( <tr key={campo.key} className="border-b border-brand-border last:border-b-0"> <td className="py-2 pr-4 text-gray-600">{campo.label}</td> <td className="py-2 pr-4 w-24"><ScoreIcon score={value as string} /></td> <td className="py-2 text-gray-500 italic text-xs">{comment || '-'}</td> </tr> ) })} </tbody> </table> </div>
+                                </div>
+                           ))}
+                        </div>
+                    </div>
+                )}
             </div>
-
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm border border-gray-700 rounded overflow-hidden">
-                    <thead className="bg-gray-800 text-gray-300">
-                        <tr>
-                            <th className="px-4 py-2 text-left">Empleado</th>
-                            <th className="px-4 py-2 text-left">Evaluaciones</th>
-                            <th className="px-4 py-2 text-left">Aciertos</th>
-                            <th className="px-4 py-2 text-left">Promedio</th>
-                            <th className="px-4 py-2 text-left">Rúbrica</th>
-                            <th className="px-4 py-2 text-left">Periodo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {acumulados.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="text-center py-4 text-gray-400">No hay datos acumulados</td>
-                            </tr>
-                        ) : (
-                            acumulados.map((e, idx) => (
-                                <tr key={idx} className="border-t border-gray-700 hover:bg-gray-800">
-                                    <td className="px-4 py-2">
-                                        <Link
-                                            href={`/evaluaciones/empleado/${e.employee.employeeNo}/${e.year}/${e.trimestre}`}
-                                            className="text-blue-400 hover:underline"
-                                        >
-                                            {e.employee.firstName} {e.employee.lastName} ({e.employee.employeeNo})
-                                        </Link>
-                                    </td>
-                                    <td className="px-4 py-2">{e.totalEvaluaciones}</td>
-                                    <td className="px-4 py-2 text-green-400">{e.totalScore} / {e.totalPosibles}</td>
-                                    <td className="px-4 py-2">{e.porcentaje}%</td>
-                                    <td className="px-4 py-2">{e.rubrica}</td>
-                                    <td className="px-4 py-2">{mostrarPeriodo(e)}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <Link href="/dashboard" className="inline-block mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold shadow">
-                ← Regresar al Dashboard
-            </Link>
         </div>
-    )
+    );
+};
+
+const EmployeeReportCard: FC<{ data: Acumulado; onViewDetails: (id: number) => void }> = ({ data, onViewDetails }) => ( <div className="bg-brand-background border border-brand-border rounded-xl shadow-sm flex flex-col md:flex-row items-center p-6 gap-6 transition-all hover:border-brand-green hover:shadow-lg hover:shadow-brand-green/20"> <div className="flex-shrink-0"> <CircularProgressBar score={data.averageScore} /> </div> <div className="flex-grow w-full"> <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4"> <div> <p className="text-sm text-gray-500">{data.employee.employeeNo}</p> <h3 className="text-xl font-bold text-brand-foreground">{data.employee.firstName} {data.employee.lastName}</h3> </div> <span className={`mt-2 sm:mt-0 text-xs font-semibold px-2 py-1 rounded-full border ${getRubricaColor(data.rubrica)}`}>{data.rubrica}</span> </div> <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4"> <StatCard icon={BarChart} label="Ops. Evaluadas" value={data.totalEvaluaciones} /> <StatCard icon={Star} label="Puntaje Total" value={`${data.totalScore} / ${data.totalPosibles}`} /> <StatCard icon={CalendarDays} label="Periodo" value={data.periodo} /> </div> <button onClick={() => onViewDetails(data.reportId)} className="text-sm font-semibold text-brand-green hover:text-green-700"> Ver Reporte Semanal Detallado → </button> </div> </div> );
+
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
+export default function PanelAcumulado() {
+  const [acumulados, setAcumulados] = useState<Acumulado[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [yearFiltro, setYearFiltro] = useState<number | null>(new Date().getFullYear());
+  const [mesFiltro, setMesFiltro] = useState<number | null>(null);
+  const [employeeFiltro, setEmployeeFiltro] = useState<string>('');
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+
+  useEffect(() => { const fetchEmployees = async () => { try { const res = await fetch('/api/empleados'); const data = await res.json(); setEmployees(data); } catch (error) { console.error("No se pudo cargar la lista de empleados", error); } }; const fetchAcumulado = async () => { setIsLoading(true); const params = new URLSearchParams(); if (yearFiltro) params.append('year', String(yearFiltro)); if (mesFiltro) params.append('mes', String(mesFiltro)); if (employeeFiltro) params.append('employeeId', employeeFiltro); const res = await fetch(`/api/evaluaciones/acumulado?${params.toString()}`, { next: { tags: ['weekly-reports'] } }); const result = await res.json(); if (res.ok) { setAcumulados(result.data); } else { setAcumulados([]); } setIsLoading(false); }; fetchEmployees(); fetchAcumulado(); }, [yearFiltro, mesFiltro, employeeFiltro]);
+  const handleClearFilters = () => { setYearFiltro(new Date().getFullYear()); setMesFiltro(null); setEmployeeFiltro(''); };
+
+  return (
+    <MainLayout>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        <div className="mb-8"> <Link href="/dashboard" className="flex items-center gap-2 text-sm text-brand-green hover:text-green-700 w-fit mb-2"> <ChevronLeft size={16} /> Regresar al Dashboard </Link> <h1 className="text-4xl font-bold tracking-tight text-brand-foreground">Panel de Rendimiento</h1> <p className="text-lg text-gray-600 mt-2">Analiza los reportes semanales acumulados por empleado.</p> </div>
+        <div className="bg-brand-background border border-brand-border rounded-xl p-6 mb-8 shadow-sm">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <div className='flex items-center gap-3'> <SlidersHorizontal className="text-brand-green" size={20} /> <h2 className="text-lg font-semibold text-brand-foreground">Filtros de Búsqueda</h2> </div>
+                <button onClick={handleClearFilters} className="flex items-center gap-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-3 rounded-md"> <RotateCcw size={14}/> Limpiar Filtros </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <select value={employeeFiltro} onChange={(e) => setEmployeeFiltro(e.target.value)} className="w-full bg-brand-background p-2 rounded-md border border-brand-border text-brand-foreground focus:ring-brand-green focus:border-brand-green"> <option value="">Todos los Empleados</option> {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)} </select>
+                <select value={mesFiltro ?? ''} onChange={(e) => setMesFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-brand-background p-2 rounded-md border border-brand-border text-brand-foreground focus:ring-brand-green focus:border-brand-green"> <option value="">Todos los Meses</option> {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('es-MX', { month: 'long' })}</option>)} </select>
+                <select value={yearFiltro ?? ''} onChange={(e) => setYearFiltro(e.target.value ? Number(e.target.value) : null)} className="w-full bg-brand-background p-2 rounded-md border border-brand-border text-brand-foreground focus:ring-brand-green focus:border-brand-green"> <option value="">Todos los Años</option> {Array.from({ length: 5 }, (_, i) => <option key={i} value={new Date().getFullYear() - i}>{new Date().getFullYear() - i}</option>)} </select>
+            </div>
+        </div>
+        {isLoading ? ( <div className="text-center py-10"> <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto"></div> </div> ) : ( <div className="space-y-6"> {acumulados.length === 0 ? ( <div className="text-center py-16 bg-brand-card rounded-lg border border-brand-border"> <BarChart className="mx-auto text-gray-400" size={48} /> <h3 className="mt-4 text-lg font-semibold text-brand-foreground">No se encontraron reportes</h3> <p className="mt-1 text-sm text-gray-500">Intenta ajustar los filtros o verifica si hay datos para el periodo seleccionado.</p> </div> ) : ( acumulados.map((report) => ( <EmployeeReportCard key={report.reportId} data={report} onViewDetails={setSelectedReportId} /> )) )} </div> )}
+        {selectedReportId && ( <ReportModal reportId={selectedReportId} onClose={() => setSelectedReportId(null)} /> )}
+      </div>
+    </MainLayout>
+  )
 }

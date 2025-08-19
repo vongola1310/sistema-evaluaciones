@@ -1,12 +1,8 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,82 +10,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
-  id        String   @id @default(cuid()) // ID como String
-  name      String?
-  email     String   @unique
-  password  String
-  role      String   @default("evaluador")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  
-  // Relación con Evaluation como evaluador
-  evaluations Evaluation[] @relation(name: "Evaluator")
-  
-   
+model User {
+  id          String       @id @default(cuid())
+  name        String?
+  email       String       @unique
+  password    String
+  role        String       @default("evaluador")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  evaluations Evaluation[] @relation("EvaluatorEvaluations")
+  reports     WeeklyReport[] @relation("EvaluatorReports")
 }
 
-model Employee{
-  id         Int @id @default(autoincrement())
-  firstName  String
-  lastName   String
-  employeeNo String @unique
-  role String @default("evaluado")//
+model Employee {
+  id            Int            @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  employeeNo    String         @unique
+  role          String         @default("evaluado")
+  opportunities Opportunity[]
+  reports       WeeklyReport[] // Un empleado puede tener muchos reportes semanales
+}
 
-  evaluations Evaluation[]
+// NUEVO MODELO: Agrupa las evaluaciones de una semana para un empleado.
+model WeeklyReport {
+  id              Int          @id @default(autoincrement())
+  startDate       DateTime     // Fecha de inicio del periodo evaluado
+  endDate         DateTime     // Fecha de fin del periodo evaluado
+  totalScore      Int          // Suma de todos los scoreRaw de las evaluaciones
+  possibleScore   Int          // Suma de todos los totalPosibles
+  averageScore    Float        // El promedio final de la semana
+  rubrica         String       // La rúbrica final (Bajo, Bueno, etc.)
+  createdAt       DateTime     @default(now())
+  
+  employeeId      Int
+  employee        Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  evaluatorId     String
+  evaluator       User         @relation("EvaluatorReports", fields: [evaluatorId], references: [id])
+  
+  evaluations     Evaluation[] // Las evaluaciones individuales que componen este reporte
 }
 
 model Evaluation {
-  id              Int      @id @default(autoincrement())
+  id                  Int      @id @default(autoincrement())
+  scoreRaw            Int      // La suma de puntos (ej: 18)
+  possibleScore       Int      // El puntaje máximo posible (ej: 18 o 20)
+  createdAt           DateTime @default(now())
   
-  // Claves foráneas
-  employeeId      Int
-  evaluatorId     String   // Ahora compatible con User.id (String)
-  opportunityId   Int
+  // Relaciones
+  opportunityId       Int
+  opportunity         Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   
-  // Relaciones con nombres explícitos
-  employee      Employee    @relation(fields: [employeeId], references: [id])
-  evaluator     User        @relation(name: "Evaluator", fields: [evaluatorId], references: [id])
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+  evaluatorId         String
+  evaluator           User     @relation("EvaluatorEvaluations", fields: [evaluatorId], references: [id])
   
-  // Campos de evaluación
-  updatedDate       String
-  correctPriceQty   String
-  quoteUploaded     String
-  description       String
-  recentFollowUp    String
-  correctStage      String
-  realisticChance   String
-  nextStepsDefined  String
-  contactAssigned   String
-  commentsUpdated   String
-  
-  // Nuevos Cálculos
-  scoreRaw       Int
-  totalPreguntas Int    @default(10)
-  totalPosibles  Int    @default(20)
-  trimestre      Int    @default(1)
-  year           Int    @default(2025)
-  rubrica        String @default("Sin evaluar")
-  
-  // Metadata
-  createdAt         DateTime @default(now())
-}
+  weeklyReportId      Int?     // Opcional, para asociar a un reporte semanal
+  weeklyReport        WeeklyReport? @relation(fields: [weeklyReportId], references: [id])
 
-model Evaluator{
-  id                Int @id @default(autoincrement())
-  fullName          String
-  email             String @unique
-
+  // Campos de evaluación (se mantienen)
+  updatedDate         String
+  correctPriceQty     String
+  quoteUploaded       String
+  description         String
+  recentFollowUp      String
+  correctStage        String
+  realisticChance     String
+  nextStepsDefined    String
+  contactAssigned     String
+  commentsUpdated     String
   
+  // Comentarios (se mantienen)
+  updatedDateComment       String?
+  correctPriceQtyComment   String?
+  quoteUploadedComment     String?
+  descriptionComment       String?
+  recentFollowUpComment    String?
+  correctStageComment      String?
+  realisticChanceComment   String?
+  nextStepsDefinedComment  String?
+  contactAssignedComment   String?
+  commentsUpdatedComment   String?
 }
 
 model Opportunity {
-  id      Int @id @default(autoincrement())
-  number  String @unique// numero de oportunidad
-  name    String // Nombre libre
-
-  evaluations Evaluation[]
+  id            Int          @id @default(autoincrement())
+  number        String       @unique
+  name          String
+  
+  // NUEVOS CAMPOS DE ESTADO Y FECHAS
+  state         String       @default("abierta") // "abierta", "ganada", "perdida"
+  createdAt     DateTime     @default(now())
+  closedAt      DateTime?    // Fecha en que se cerró
+  daysOpen      Int?         // Días que duró abierta
+  
+  employeeId    Int
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  evaluations   Evaluation[]
 }
 
+// El modelo Evaluator es redundante si los evaluadores están en el modelo User.
+// Se recomienda eliminarlo y usar User con role "evaluador".
+// model Evaluator { ... }

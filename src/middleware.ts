@@ -1,43 +1,42 @@
-import { getToken } from "next-auth/jwt";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+// middleware.ts
+import { getToken } from "next-auth/jwt"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export async function middleware (req: NextRequest){
-    const token = await getToken ({req})
+const PDF_SECRET = 'XYZ123' // mismo que usas en el fetch de Puppeteer
 
-    // si no esta autenticado 
+export async function middleware(req: NextRequest) {
+  const { pathname, searchParams } = req.nextUrl
 
-    if (!token){
-        return NextResponse.redirect(new URL('/login',req.url))
-    }
-
-    // si no es evaluador
-    if (token.role !== 'evaluador'){
-        return NextResponse.redirect(new URL('/no-autorizado',req.url))
-    }
-
-    //dejar pasar si todo bien
+  // 1. Permitir acceso sin token si es petición a reporte con secret
+  if (
+    pathname.startsWith("/evaluaciones/resumen/") &&
+    searchParams.get("pdf") === "true" &&
+    searchParams.get("secret") === PDF_SECRET
+  ) {
     return NextResponse.next()
+  }
 
-    
+  const token = await getToken({ req })
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  if (token.role !== "evaluador") {
+    return NextResponse.redirect(new URL("/no-autorizado", req.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-    matcher:[
-        '/empleados/nuevo/',
-        '/empleados/:path*',
-        '/empleados/',
-        '/evaluaciones/nueva/:path*',
-        '/evaluaciones/:path*',
-        '/oportunidades/nueva/:path*',
-        '/oportunidades/:path*',
-        '/dashboard/:path*',
-        '/empleados/nuevo/:path*',
-        '/evaluaciones/nueva',
-        '/evaluaciones/',
-        '/evaluaciones/resumen/[id]/',
-        '/evaluaciones/:path*'
-    ],
+  matcher: [
+    "/empleados/:path*",
+    "/evaluaciones/:path*",
+    "/oportunidades/:path*",
+    "/dashboard/:path*",
+    
+
+  ],
 }
-
-
