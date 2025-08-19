@@ -1,5 +1,8 @@
 // /api/evaluaciones/empleado/[employeeNo]/[year]/[trimestre]/route.ts
+//
+/** */
 
+/*
 import { NextResponse } from 'next/server'
 import {prisma} from '@/lib/prisma'
 import { startOfQuarter, endOfQuarter } from 'date-fns'
@@ -49,3 +52,4 @@ export async function GET(
 
   return NextResponse.json({ data: evaluaciones })
 }
+  */
