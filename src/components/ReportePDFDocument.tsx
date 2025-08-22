@@ -8,12 +8,18 @@ interface ReportData {
   employee: { firstName: string; lastName: string; };
   startDate: string | Date;
   endDate: string | Date;
-  evaluations: { id: number; opportunity: { number: string; name: string; }; scoreRaw: number; possibleScore: number; [key: string]: any; }[];
+  evaluations: {
+    id: number;
+    opportunity: { number: string; name: string; };
+    scoreRaw: number;
+    possibleScore: number;
+    [key: string]: any; // Para permitir acceso a campos dinámicos
+  }[];
   averageScore: number;
   rubrica: string;
 }
 
-// --- ✅ ESTILOS PARA EL PDF (ACTUALIZADOS A LIGHT MODE) ---
+// --- ESTILOS PARA EL PDF (ACTUALIZADOS A LIGHT MODE) ---
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
@@ -90,7 +96,7 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    color: '#74C054', // Verde corporativo
+    color: '#74C054',
   },
   table: {
     width: '100%',
@@ -98,22 +104,22 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottom: '1px solid #F3F4F6', // Borde muy sutil
-    paddingVertical: 4,
+    paddingVertical: 5,
+    alignItems: 'center'
   },
   tableColLabel: {
     width: '55%',
     paddingRight: 5,
-    color: '#4B5563', // Gris oscuro
+    color: '#4B5563',
   },
   tableColScore: {
-    width: '15%',
-    textAlign: 'center',
+    width: '20%',
     fontFamily: 'Helvetica-Bold',
   },
   tableColComment: {
-    width: '30%',
+    width: '25%',
     fontStyle: 'italic',
-    color: '#6B7280', // Gris medio
+    color: '#6B7280',
   },
   pageNumber: {
     position: 'absolute',
@@ -128,6 +134,21 @@ const styles = StyleSheet.create({
 
 const camposEvaluacion = [ { key: 'updatedDate', label: 'Fecha de cierre' }, { key: 'correctPriceQty', label: 'Precios y Cantidades' }, { key: 'quoteUploaded', label: 'Cotización Cargada' }, { key: 'description', label: 'Descripción' }, { key: 'recentFollowUp', label: 'Seguimiento Reciente' }, { key: 'correctStage', label: 'Etapa Correcta' }, { key: 'realisticChance', label: 'Probabilidad Realista' }, { key: 'nextStepsDefined', label: 'Siguientes Pasos' }, { key: 'contactAssigned', label: 'Contacto Asignado' }, { key: 'commentsUpdated', label: 'Comentarios Actualizados' }, ];
 
+const ScoreIndicatorPDF = ({ score }: { score: string }) => {
+    switch (score) {
+        case '2':
+            return <Text style={{ ...styles.tableColScore, color: '#16A34A' }}>✓ Cumplido</Text>;
+        case '1':
+            return <Text style={{ ...styles.tableColScore, color: '#D97706' }}>- Parcial</Text>;
+        case '0':
+            return <Text style={{ ...styles.tableColScore, color: '#DC2626' }}>✗ Incumplido</Text>;
+        case 'N/A':
+            return <Text style={{ ...styles.tableColScore, color: '#6B7280' }}>N/A</Text>;
+        default:
+            return <Text style={styles.tableColScore}>-</Text>;
+    }
+};
+
 // --- DOCUMENTO PDF ---
 export const ReportePDFDocument = ({ report }: { report: ReportData }) => (
   <Document>
@@ -136,6 +157,7 @@ export const ReportePDFDocument = ({ report }: { report: ReportData }) => (
         <Text style={styles.title}>Reporte de Rendimiento Semanal</Text>
         <Text style={styles.subtitle}>{report.employee.firstName} {report.employee.lastName}</Text>
       </View>
+
       <View style={styles.summarySection}>
         <Text style={{ textAlign: 'center', fontSize: 14, color: '#1F2937', fontFamily: 'Helvetica-Bold' }}>Resumen del Período</Text>
         <View style={styles.kpiGrid}>
@@ -145,10 +167,15 @@ export const ReportePDFDocument = ({ report }: { report: ReportData }) => (
           <View style={styles.kpiBox}><Text style={styles.kpiValue}>{report.rubrica}</Text><Text style={styles.kpiLabel}>Rúbrica</Text></View>
         </View>
       </View>
+
       <Text style={styles.sectionTitle}>Desglose de Evaluaciones</Text>
+      
       {report.evaluations.map(ev => (
         <View key={ev.id} style={styles.evaluationCard} wrap={false}>
-          <View style={styles.opportunityHeader}><Text style={styles.opportunityName}>{ev.opportunity.number} - {ev.opportunity.name}</Text><Text style={styles.score}>Puntaje: {ev.scoreRaw} / {ev.possibleScore}</Text></View>
+          <View style={styles.opportunityHeader}>
+            <Text style={styles.opportunityName}>{ev.opportunity.number} - {ev.opportunity.name}</Text>
+            <Text style={styles.score}>Puntaje: {ev.scoreRaw} / {ev.possibleScore}</Text>
+          </View>
           <View style={styles.table}>
             {camposEvaluacion.map(campo => {
               const value = ev[campo.key];
@@ -156,7 +183,7 @@ export const ReportePDFDocument = ({ report }: { report: ReportData }) => (
               return (
                 <View key={campo.key} style={styles.tableRow}>
                   <Text style={styles.tableColLabel}>{campo.label}:</Text>
-                  <Text style={styles.tableColScore}>{value}</Text>
+                  <ScoreIndicatorPDF score={value} />
                   <Text style={styles.tableColComment}>{comment || '-'}</Text>
                 </View>
               )
@@ -164,6 +191,7 @@ export const ReportePDFDocument = ({ report }: { report: ReportData }) => (
           </View>
         </View>
       ))}
+
       <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} fixed />
     </Page>
   </Document>
