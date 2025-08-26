@@ -76,6 +76,11 @@ export async function POST(request: Request) {
         data: evaluationsToCreate,
       })
 
+      const employee = await tx.employee.findUnique({
+        where:{id:employeeId},
+        select:{userId:true}
+      })
+
       return report;
     });
 

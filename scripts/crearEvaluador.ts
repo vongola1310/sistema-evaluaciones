@@ -7,36 +7,11 @@ const prisma = new PrismaClient()
 // 1. Define aquí la lista de usuarios que quieres crear
 const usersToCreate = [
   {
-    name: 'Adan Ortíz Blas ',
-    email: 'adan.ortiz@euroimmun.mx',
-    password: 'adan.ortiz', // Puedes poner contraseñas diferentes para cada uno
+    name: 'Estela Carrera',
+    email: 'estela.carrera@euroimmun.mx',
+    password: 'admin', // Puedes poner contraseñas diferentes para cada uno
     role: 'evaluador',
-  },
-  {
-    name: 'Omar Ivan Blas Madrid',
-    email: 'omar.blas@euroimmun.mx',
-    password: 'omar.blas',
-    role: 'evaluador',
-  },
-  {
-    name: 'Juan Luis Ramos Sanchez',
-    email: 'juan.ramos@euroimmun.mx',
-    password: 'juan.ramos',
-    role: 'evaluador',
-  },
-
-   {
-    name: 'Abigail Verónica Castro Cabrera',
-    email: 'abigail.castro@euroimmun.mx',
-    password: 'abigail.castro',
-    role: 'evaluador',
-  },
-  {
-    name: 'Jose Antonio Fernández',
-    email: 'jose.fernandez@euroimmun.mx',
-    password: 'jose.fernandez',
-    role: 'evaluador',
-  },
+  }
   // ... puedes añadir más usuarios aquí
 ];
 
