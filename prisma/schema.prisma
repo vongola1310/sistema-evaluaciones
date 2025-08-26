@@ -20,6 +20,7 @@ model User {
   updatedAt   DateTime     @updatedAt
   evaluations Evaluation[] @relation("EvaluatorEvaluations")
   reports     WeeklyReport[] @relation("EvaluatorReports")
+  notifications Notifications[]
 }
 
 model Employee {
@@ -30,6 +31,18 @@ model Employee {
   role          String         @default("evaluado")
   opportunities Opportunity[]
   reports       WeeklyReport[] // Un empleado puede tener muchos reportes semanales
+  userId String? @unique
+}
+
+model Notifications {
+  id             Int @id @default(autoincrement())
+  message        String 
+  link           String
+  read           Boolean @default(false)
+  createdAt      DateTime @default(now())
+
+  userId String
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade )
 }
 
 // NUEVO MODELO: Agrupa las evaluaciones de una semana para un empleado.
