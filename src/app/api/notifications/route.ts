@@ -1,4 +1,3 @@
-// /src/app/api/notifications/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -12,10 +11,10 @@ export async function GET() {
   }
 
   try {
-    const notifications = await prisma.notifications.findMany({
+    const notifications = await prisma.notification.findMany({ // ✅ CORREGIDO: de notifications a notification
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 10, // Traemos solo las 10 más recientes para no sobrecargar
+      take: 10,
     })
     return NextResponse.json(notifications);
   } catch (error) {
@@ -24,17 +23,15 @@ export async function GET() {
   }
 }
 
-
 // --- FUNCIÓN PATCH: Marca las notificaciones como leídas ---
-export async function PATCH(request: Request) {
+export async function PATCH() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   
   try {
-    // Marcamos todas las notificaciones no leídas del usuario como leídas
-    await prisma.notifications.updateMany({
+    await prisma.notification.updateMany({ // ✅ CORREGIDO: de notifications a notification
       where: { 
         userId: session.user.id,
         read: false 
