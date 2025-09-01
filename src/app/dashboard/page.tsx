@@ -6,9 +6,21 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import MainLayout from "@/components/MainLayout"
 import type { FC, ReactNode } from "react";
-import { ClipboardList, FilePenLine, Lightbulb, UserPlus, Users, Archive, Lock } from "lucide-react";
 
-// --- SUB-COMPONENTES DE DISEÑO (Estos no cambian) ---
+// Importa los iconos que vamos a usar
+import {
+  ClipboardList,
+  FilePenLine,
+  Lightbulb,
+  UserPlus,
+  Users,
+  Archive,
+  Lock,
+  TrendingUp,
+  BarChart, // Icono para la evaluación mensual
+} from "lucide-react";
+
+// --- SUB-COMPONENTES DE DISEÑO ---
 
 const DashboardCard: FC<{ href: string, icon: any, title: string, children: ReactNode }> = ({ href, icon: Icon, title, children }) => {
     return (
@@ -40,7 +52,7 @@ const DashboardSection: FC<{ title: string, children: ReactNode }> = ({ title, c
     </section>
 );
 
-// --- COMPONENTE PRINCIPAL DE LA PÁGINA (COMO CLIENTE) ---
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA ---
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -105,7 +117,10 @@ export default function DashboardPage() {
 
           <DashboardSection title="Paso 2: Acciones Principales">
               <DashboardCard href="/evaluaciones/nueva" icon={FilePenLine} title="Realizar Evaluación Semanal">
-                  Accede al formulario para registrar un nuevo reporte de evaluación.
+                  Accede al formulario para registrar un nuevo reporte de evaluación de oportunidades.
+              </DashboardCard>
+              <DashboardCard href="/evaluaciones/mensuales/nueva" icon={TrendingUp} title="Evaluación Mensual Comercial">
+                  Registra la rúbrica de desempeño comercial para un empleado.
               </DashboardCard>
               <DashboardCard href="/oportunidades/listado" icon={Lock} title="Cerrar Oportunidades">
                   Gestiona y actualiza el estado de las oportunidades abiertas.
@@ -113,8 +128,11 @@ export default function DashboardPage() {
           </DashboardSection>
 
           <DashboardSection title="Paso 3: Consultas y Reportes">
-              <DashboardCard href="/evaluaciones/panel" icon={ClipboardList} title="Panel de Rendimiento">
-                  Analiza los reportes semanales acumulados por empleado.
+              <DashboardCard href="/evaluaciones/panel" icon={ClipboardList} title="Panel de Rendimiento Semanal">
+                  Analiza los reportes de seguimiento de oportunidades.
+              </DashboardCard>
+              <DashboardCard href="/evaluaciones/mensuales/panel" icon={BarChart} title="Panel de Desempeño Mensual">
+                  Consulta y filtra las rúbricas de desempeño comercial.
               </DashboardCard>
               <DashboardCard href="/empleados" icon={Users} title="Ver Empleados">
                   Consulta y gestiona la lista completa de tus empleados.

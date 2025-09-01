@@ -11,89 +11,79 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  name        String?
-  email       String       @unique
-  password    String
-  role        String       @default("evaluador")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  evaluations Evaluation[] @relation("EvaluatorEvaluations")
-  reports     WeeklyReport[] @relation("EvaluatorReports")
-  notifications Notifications[]
+  id                    String                 @id @default(cuid())
+  name                  String?
+  email                 String                 @unique
+  password              String
+  role                  String                 @default("evaluador")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  evaluations           Evaluation[]           @relation("EvaluatorEvaluations")
+  reports               WeeklyReport[]         @relation("EvaluatorReports")
+  notifications         Notification[]
+  commercialEvaluations CommercialEvaluation[] @relation("EvaluatorCommercialEvaluations")
 }
 
 model Employee {
-  id            Int            @id @default(autoincrement())
-  firstName     String
-  lastName      String
-  employeeNo    String         @unique
-  role          String         @default("evaluado")
-  opportunities Opportunity[]
-  reports       WeeklyReport[] // Un empleado puede tener muchos reportes semanales
-  userId String? @unique
+  id                    Int                    @id @default(autoincrement())
+  firstName             String
+  lastName              String
+  employeeNo            String                 @unique
+  role                  String                 @default("evaluado")
+  userId                String?                @unique
+  
+  opportunities         Opportunity[]
+  reports               WeeklyReport[]
+  commercialEvaluations CommercialEvaluation[]
 }
 
-model Notifications {
-  id             Int @id @default(autoincrement())
-  message        String 
-  link           String
-  read           Boolean @default(false)
-  createdAt      DateTime @default(now())
-
-  userId String
-  user User @relation(fields: [userId],references: [id],onDelete: Cascade )
-}
-
-// NUEVO MODELO: Agrupa las evaluaciones de una semana para un empleado.
 model WeeklyReport {
-  id              Int          @id @default(autoincrement())
-  startDate       DateTime     // Fecha de inicio del periodo evaluado
-  endDate         DateTime     // Fecha de fin del periodo evaluado
-  totalScore      Int          // Suma de todos los scoreRaw de las evaluaciones
-  possibleScore   Int          // Suma de todos los totalPosibles
-  averageScore    Float        // El promedio final de la semana
-  rubrica         String       // La rúbrica final (Bajo, Bueno, etc.)
-  createdAt       DateTime     @default(now())
+  id            Int          @id @default(autoincrement())
+  startDate     DateTime
+  endDate       DateTime
+  totalScore    Int
+  possibleScore Int
+  averageScore  Float
+  rubrica       String
+  createdAt     DateTime     @default(now())
+  isSent        Boolean      @default(false)
   
-  employeeId      Int
-  employee        Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    Int
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   
-  evaluatorId     String
-  evaluator       User         @relation("EvaluatorReports", fields: [evaluatorId], references: [id])
+  evaluatorId   String
+  evaluator     User         @relation("EvaluatorReports", fields: [evaluatorId], references: [id])
   
-  evaluations     Evaluation[] // Las evaluaciones individuales que componen este reporte
+  evaluations   Evaluation[]
 }
 
 model Evaluation {
-  id                  Int      @id @default(autoincrement())
-  scoreRaw            Int      // La suma de puntos (ej: 18)
-  possibleScore       Int      // El puntaje máximo posible (ej: 18 o 20)
-  createdAt           DateTime @default(now())
+  id                       Int           @id @default(autoincrement())
+  scoreRaw                 Int
+  possibleScore            Int
+  createdAt                DateTime      @default(now())
   
-  // Relaciones
-  opportunityId       Int
-  opportunity         Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId            Int
+  opportunity              Opportunity   @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   
-  evaluatorId         String
-  evaluator           User     @relation("EvaluatorEvaluations", fields: [evaluatorId], references: [id])
+  evaluatorId              String
+  evaluator                User          @relation("EvaluatorEvaluations", fields: [evaluatorId], references: [id])
   
-  weeklyReportId      Int?     // Opcional, para asociar a un reporte semanal
-  weeklyReport        WeeklyReport? @relation(fields: [weeklyReportId], references: [id])
+  weeklyReportId           Int?
+  weeklyReport             WeeklyReport? @relation(fields: [weeklyReportId], references: [id])
 
-  // Campos de evaluación (se mantienen)
-  updatedDate         String
-  correctPriceQty     String
-  quoteUploaded       String
-  description         String
-  recentFollowUp      String
-  correctStage        String
-  realisticChance     String
-  nextStepsDefined    String
-  contactAssigned     String
-  commentsUpdated     String
+  updatedDate              String
+  correctPriceQty          String
+  quoteUploaded            String
+  description              String
+  recentFollowUp           String
+  correctStage             String
+  realisticChance          String
+  nextStepsDefined         String
+  contactAssigned          String
+  commentsUpdated          String
   
-  // Comentarios (se mantienen)
   updatedDateComment       String?
   correctPriceQtyComment   String?
   quoteUploadedComment     String?
@@ -107,22 +97,68 @@ model Evaluation {
 }
 
 model Opportunity {
-  id            Int          @id @default(autoincrement())
-  number        String       @unique
-  name          String
+  id          Int          @id @default(autoincrement())
+  number      String       @unique
+  name        String
+  state       String       @default("abierta")
+  createdAt   DateTime     @default(now())
+  closedAt    DateTime?
+  daysOpen    Int?
   
-  // NUEVOS CAMPOS DE ESTADO Y FECHAS
-  state         String       @default("abierta") // "abierta", "ganada", "perdida"
-  createdAt     DateTime     @default(now())
-  closedAt      DateTime?    // Fecha en que se cerró
-  daysOpen      Int?         // Días que duró abierta
+  employeeId  Int
+  employee    Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   
-  employeeId    Int
-  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
-  evaluations   Evaluation[]
+  evaluations Evaluation[]
 }
 
-// El modelo Evaluator es redundante si los evaluadores están en el modelo User.
-// Se recomienda eliminarlo y usar User con role "evaluador".
-// model Evaluator { ... }
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  link      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommercialEvaluation {
+  id                               Int      @id @default(autoincrement())
+  createdAt                        DateTime @default(now())
+  
+  evaluationDate                   DateTime
+  quarter                          Int
+  year                             Int
+  
+  salesGoalObjective               Float?
+  salesGoalAchieved                Float?
+  salesGoalPonderedScore           Float?
+
+  activityObjective                Float?
+  activityAchieved                 Float?
+  activityPonderedScore            Float?
+
+  creationObjective                Float?
+  creationAchieved                 Float?
+  creationPonderedScore            Float?
+
+  conversionObjective              Float?
+  conversionAchieved               Float?
+  conversionPonderedScore          Float?
+
+  crmObjective                     Float?
+  crmAchieved                      Float?
+  crmPonderedScore                 Float?
+
+  extraPoints                      Float?
+
+  totalScore                       Float?
+
+  rubrica                          String?
+
+  employeeId                       Int
+  employee                         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  evaluatorId                      String
+  evaluator                        User     @relation("EvaluatorCommercialEvaluations", fields: [evaluatorId], references: [id])
+}

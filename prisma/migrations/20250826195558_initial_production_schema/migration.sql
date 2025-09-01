@@ -18,7 +18,7 @@ CREATE TABLE "Employee" (
     "lastName" TEXT NOT NULL,
     "employeeNo" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'evaluado',
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
 
     CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
 );
