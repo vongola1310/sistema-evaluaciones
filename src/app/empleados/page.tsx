@@ -1,5 +1,3 @@
-// src/app/empleados/page.tsx
-
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
@@ -7,10 +5,10 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import MainLayout from "@/components/MainLayout"
 import DeleteEmployeeButton from '@/components/DeleteEmployeeButton'
-import { Plus, UserX, ChevronLeft } from 'lucide-react'
+import { Plus, UserX, ChevronLeft, User } from 'lucide-react'
 import type { FC } from 'react'
 
-// --- TYPE DEFINITION (for clarity) ---
+// --- TYPE DEFINITION ---
 type Employee = {
     id: number;
     firstName: string;
@@ -18,25 +16,30 @@ type Employee = {
     employeeNo: string;
 }
 
-// --- SUB-COMPONENTES DE DISEÑO (LIGHT MODE) ---
+// --- SUB-COMPONENTES DE DISEÑO ---
 
 const EmployeeCard: FC<{ employee: Employee }> = ({ employee }) => {
     const initial = employee.firstName?.charAt(0).toUpperCase() || 'E';
 
     return (
-        <div className="bg-brand-background border border-brand-border rounded-xl shadow-sm p-4 flex items-center justify-between gap-4 transition-all hover:border-brand-green hover:shadow-lg hover:shadow-brand-green/20">
-            <div className="flex items-center gap-4">
+        <div className="bg-brand-background border border-brand-border rounded-xl shadow-sm p-4 flex items-center justify-between gap-4">
+            {/* ✅ La sección de información ahora es un enlace */}
+            <Link 
+                href={`/empleados/${employee.id}`} 
+                className="flex items-center gap-4 group flex-grow transition-opacity hover:opacity-80"
+            >
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center ring-2 ring-gray-200">
+                <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center ring-2 ring-gray-200 transition-colors group-hover:ring-brand-green">
                     <span className="text-xl font-bold text-brand-green">{initial}</span>
                 </div>
                 {/* Info */}
                 <div>
-                    <h3 className="text-base font-bold text-brand-foreground">{employee.firstName} {employee.lastName}</h3>
+                    <h3 className="text-base font-bold text-brand-foreground transition-colors group-hover:text-brand-green">{employee.firstName} {employee.lastName}</h3>
                     <p className="text-xs text-gray-500 font-mono">ID: {employee.employeeNo}</p>
                 </div>
-            </div>
-            {/* Action */}
+            </Link>
+            
+            {/* La acción de eliminar se mantiene separada */}
             <div className="flex-shrink-0">
                 <DeleteEmployeeButton employeeId={employee.id} />
             </div>
@@ -77,7 +80,7 @@ export default async function ListaEmpleados() {
 
     return (
         <MainLayout>
-            <div className="max-w-4xl mx-auto p-4 sm:p-6">
+            <div className="max-w-4xl mx-auto p-4 sm-p-6">
                 {/* Encabezado de la Página */}
                 <div className="mb-8">
                     <Link href="/dashboard" className="flex items-center gap-2 text-sm text-brand-green hover:text-green-700 transition-colors w-fit mb-2">
